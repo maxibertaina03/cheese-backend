@@ -16,7 +16,8 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'cheese_stock',
-  synchronize: true,
-  logging: false,
+  synchronize: process.env.NODE_ENV !== 'production', // ⚠️ false en producción
+  logging: process.env.NODE_ENV !== 'production',
   entities: [TipoQueso, Producto, Unidad, Particion, Usuario],
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // 🔒 SSL para Render
 });
