@@ -9,10 +9,19 @@ import authRoutes from './routes/auth.routes';
 const app = express();
 
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://cheese-stock-frontend-jsq7.vercel.app']
-    : 'http://localhost:3001',
+  origin: function (origin: string | undefined, callback: any) {
+    // Permite requests sin origin (como Postman) o desde Vercel
+    if (!origin || 
+        origin.includes('vercel.app') || 
+        origin === 'http://localhost:3001') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
@@ -24,5 +33,5 @@ app.use('/api/unidades', unidadRoutes);
 app.use('/api/particiones', particionRoutes);
 app.use('/api/auth', authRoutes);
 app.get('/', (_req, res) => res.send('Cheese-stock API ok'));
-console.log('✅ /api/auth routes mounted');
+
 export default app;
