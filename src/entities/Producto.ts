@@ -1,3 +1,6 @@
+// ============================================
+// ARCHIVO: src/entities/Producto.ts (ACTUALIZADO)
+// ============================================
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -5,9 +8,12 @@ import {
   ManyToOne,
   OneToMany,
   CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { TipoQueso } from './TipoQueso';
 import { Unidad } from './Unidad';
+import { Usuario } from './Usuario';
 
 @Entity('productos')
 export class Producto {
@@ -17,7 +23,6 @@ export class Producto {
   @Column()
   nombre!: string;
 
-  // PLU / código interno (balanza)
   @Column({ length: 20, unique: true })
   plu!: string;
 
@@ -27,13 +32,29 @@ export class Producto {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   precioPorKilo!: number | null;
 
-
   @ManyToOne(() => TipoQueso, (tipo) => tipo.productos, { nullable: false })
   tipoQueso!: TipoQueso;
+
+  // 🆕 Auditoría de Usuarios
+  @ManyToOne(() => Usuario, { nullable: true })
+  creadoPor!: Usuario | null;
+
+  @ManyToOne(() => Usuario, { nullable: true })
+  modificadoPor!: Usuario | null;
+
+  @ManyToOne(() => Usuario, { nullable: true })
+  eliminadoPor!: Usuario | null;
 
   @OneToMany(() => Unidad, (unidad) => unidad.producto)
   unidades!: Unidad[];
 
   @CreateDateColumn()
   createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
+
+  // 🆕 Soft Delete
+  @DeleteDateColumn()
+  deletedAt!: Date | null;
 }
