@@ -40,6 +40,7 @@ const TipoQueso_1 = require("../entities/TipoQueso");
 const Producto_1 = require("../entities/Producto");
 const Unidad_1 = require("../entities/Unidad");
 const Particion_1 = require("../entities/Particion");
+const Usuario_1 = require("../entities/Usuario");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 exports.AppDataSource = new typeorm_1.DataSource({
@@ -49,7 +50,8 @@ exports.AppDataSource = new typeorm_1.DataSource({
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'cheese_stock',
-    synchronize: true,
-    logging: false,
-    entities: [TipoQueso_1.TipoQueso, Producto_1.Producto, Unidad_1.Unidad, Particion_1.Particion],
+    synchronize: process.env.NODE_ENV !== 'production', // ⚠️ false en producción
+    logging: process.env.NODE_ENV !== 'production',
+    entities: [TipoQueso_1.TipoQueso, Producto_1.Producto, Unidad_1.Unidad, Particion_1.Particion, Usuario_1.Usuario],
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // 🔒 SSL para Render
 });

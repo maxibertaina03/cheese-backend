@@ -70,32 +70,37 @@ class UnidadController {
         }
     }
     // Agregar una partición (venta / corte)
+    // Agregar una partición (venta / corte)
     static async addParticiones(req, res) {
         try {
             const unidadId = Number(req.params.id);
-            const { peso, observacionesCorte } = req.body; // Agregado
+            const { peso, observacionesCorte } = req.body;
             if (peso === null || peso === undefined || peso < 0) {
                 return res.status(400).json({ error: 'El peso debe ser 0 o mayor' });
             }
             const unidadRepo = database_1.AppDataSource.getRepository(Unidad_1.Unidad);
             const particionRepo = database_1.AppDataSource.getRepository(Particion_1.Particion);
-            // Si es 0, debe ser egreso final
             const unidad = await unidadRepo.findOneBy({ id: unidadId });
             if (!unidad || !unidad.activa) {
                 return res.status(404).json({ error: 'Unidad no encontrada o inactiva' });
             }
-            if (peso === 0 && Number(unidad.pesoActual) !== 0) {
-                return res.status(400).json({ error: 'No se puede egresar 0 g si aún queda peso' });
+            // ✅ Manejo del egreso total
+            let pesoFinal = peso;
+            if (pesoFinal === 0) {
+                if (Number(unidad.pesoActual) === 0) {
+                    return res.status(400).json({ error: 'La unidad ya está agotada' });
+                }
+                pesoFinal = Number(unidad.pesoActual);
             }
-            if (Number(unidad.pesoActual) < peso) {
+            if (Number(unidad.pesoActual) < pesoFinal) {
                 return res.status(400).json({ error: 'Peso insuficiente en la unidad' });
             }
             const particion = particionRepo.create({
                 unidad,
-                peso,
+                peso: pesoFinal,
                 observacionesCorte: observacionesCorte || null,
             });
-            unidad.pesoActual = Number(unidad.pesoActual) - peso;
+            unidad.pesoActual = Number(unidad.pesoActual) - pesoFinal;
             if (unidad.pesoActual === 0) {
                 unidad.activa = false;
             }
