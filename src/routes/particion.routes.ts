@@ -1,23 +1,15 @@
+// ============================================
+// ARCHIVO: src/routes/particion.routes.ts (ACTUALIZADO)
+// ============================================
 import { Router } from 'express';
-import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { Particion } from '../entities/Particion';
+import { ParticionController } from '../controllers/particion.controller';
+import { auth, requireRole } from '../middlewares/auth';
 
 const router = Router();
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const particionRepo = AppDataSource.getRepository(Particion);
-
-    const particiones = await particionRepo.find({
-      relations: ['unidad'],
-    });
-
-    res.json(particiones);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get('/', auth, ParticionController.getAll);
+router.get('/:id', auth, ParticionController.getOne);
+router.put('/:id', auth, requireRole('admin'), ParticionController.update);
+router.delete('/:id', auth, requireRole('admin'), ParticionController.delete);
 
 export default router;
-

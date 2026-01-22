@@ -1,3 +1,6 @@
+// ============================================
+// ARCHIVO: src/config/database.ts (ACTUALIZADO)
+// ============================================
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { TipoQueso } from '../entities/TipoQueso';
@@ -5,6 +8,7 @@ import { Producto } from '../entities/Producto';
 import { Unidad } from '../entities/Unidad';
 import { Particion } from '../entities/Particion';
 import { Usuario } from '../entities/Usuario';
+import { Motivo } from '../entities/Motivo'; // 🆕
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,8 +20,8 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'cheese_stock',
-  synchronize: process.env.NODE_ENV !== 'production', // ⚠️ false en producción
+  synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.NODE_ENV !== 'production',
-  entities: [TipoQueso, Producto, Unidad, Particion, Usuario],
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // 🔒 SSL para Render
+  entities: [TipoQueso, Producto, Unidad, Particion, Usuario, Motivo], // 🆕 Agregado Motivo
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
