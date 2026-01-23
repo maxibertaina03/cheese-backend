@@ -1,9 +1,10 @@
 // ============================================
-// ARCHIVO: src/controllers/particion.controller.ts (NUEVO)
+// ARCHIVO: src/controllers/particion.controller.ts (CORREGIDO)
 // ============================================
 import { Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Particion } from '../entities/Particion';
+import { Motivo } from '../entities/Motivo'; // ✅ Import correcto
 import { Usuario } from '../entities/Usuario';
 import { AuthRequest } from '../middlewares/auth';
 
@@ -63,6 +64,7 @@ export class ParticionController {
     try {
       const { observacionesCorte, motivoId } = req.body;
       const particionRepo = AppDataSource.getRepository(Particion);
+      const motivoRepo = AppDataSource.getRepository(Motivo); // ✅ Uso correcto
       const usuarioRepo = AppDataSource.getRepository(Usuario);
 
       const particion = await particionRepo.findOne({
@@ -74,7 +76,7 @@ export class ParticionController {
         return res.status(404).json({ error: 'Partición no encontrada' });
       }
 
-      // 🆕 Obtener usuario que modifica
+      // Obtener usuario que modifica
       let usuarioModificador = null;
       if (req.user?.id) {
         usuarioModificador = await usuarioRepo.findOneBy({ id: req.user.id });
@@ -88,8 +90,7 @@ export class ParticionController {
         if (motivoId === null) {
           particion.motivo = null;
         } else {
-          const motivoRepo = AppDataSource.getRepository(require('../entities/Motivo').Motivo);
-          const motivo = await motivoRepo.findOneBy({ id: motivoId });
+          const motivo = await motivoRepo.findOneBy({ id: motivoId }); // ✅ Corregido
           if (!motivo) {
             return res.status(404).json({ error: 'Motivo no encontrado' });
           }
@@ -97,7 +98,7 @@ export class ParticionController {
         }
       }
 
-      particion.modificadoPor = usuarioModificador; // 🆕
+      particion.modificadoPor = usuarioModificador;
 
       await particionRepo.save(particion);
 
@@ -126,13 +127,13 @@ export class ParticionController {
         return res.status(404).json({ error: 'Partición no encontrada' });
       }
 
-      // 🆕 Obtener usuario que elimina
+      // Obtener usuario que elimina
       let usuarioEliminador = null;
       if (req.user?.id) {
         usuarioEliminador = await usuarioRepo.findOneBy({ id: req.user.id });
       }
 
-      particion.eliminadoPor = usuarioEliminador; // 🆕
+      particion.eliminadoPor = usuarioEliminador;
       await particionRepo.softRemove(particion);
 
       res.json({ message: 'Partición eliminada exitosamente' });
