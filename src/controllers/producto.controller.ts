@@ -6,6 +6,7 @@ import { AppDataSource } from '../config/database';
 import { Producto } from '../entities/Producto';
 import { TipoQueso } from '../entities/TipoQueso';
 import { Usuario } from '../entities/Usuario';
+import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
 
 export class ProductoController {
