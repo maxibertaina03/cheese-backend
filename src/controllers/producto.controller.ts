@@ -55,8 +55,11 @@ export class ProductoController {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+    
   }
 
+
+  
   // GET /api/productos - Listar todos los productos
   static async getAll(req: AuthRequest, res: Response) {
     try {
@@ -188,16 +191,28 @@ export class ProductoController {
   }
 
   // DELETE /api/productos/:id - Soft delete
-  static async delete(req: AuthRequest, res: Response) {
-    try {
-      const productoRepo = AppDataSource.getRepository(Producto);
-      const usuarioRepo = AppDataSource.getRepository(Usuario);
+      static async delete(req: AuthRequest, res: Response) {
+        try {
+          const productoRepo = AppDataSource.getRepository(Producto);
+          const unidadRepo = AppDataSource.getRepository(Unidad);
+          const usuarioRepo = AppDataSource.getRepository(Usuario);
 
-      const producto = await productoRepo.findOneBy({ id: Number(req.params.id) });
-      if (!producto) {
-        return res.status(404).json({ error: 'Producto no encontrado' });
-      }
+          const producto = await productoRepo.findOne({
+            where: { id: Number(req.params.id) },
+            relations: ['unidades'], // Cargar unidades
+          });
+          
+          if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+          }
 
+          // 🆕 Verificar si tiene unidades activas
+          const unidadesActivas = producto.unidades?.filter(u => u.activa && !u.deletedAt).length || 0;
+          if (unidadesActivas > 0) {
+            return res.status(400).json({ 
+              error: `No se puede eliminar el producto. Tiene ${unidadesActivas} unidad(es) activa(s) en inventario.` 
+            });
+          }
       // 🆕 Obtener usuario que elimina
       let usuarioEliminador = null;
       if (req.user?.id) {
