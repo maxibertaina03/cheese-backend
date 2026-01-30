@@ -1,6 +1,19 @@
 // src/utils/logger.ts
 import winston from 'winston';
 
+  // Agregar esto arriba de todo en logger.ts
+  declare global {
+    namespace Express {
+      interface Request {
+        user?: {
+          id: number;
+          rol: string;
+          username?: string; // Agregar esto
+        };
+      }
+    }
+  }
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
@@ -44,7 +57,7 @@ export const requestLogger = (req: AuthRequest, res: Response, next: NextFunctio
       url: req.url,
       status: res.statusCode,
       duration: `${duration}ms`,
-      user: req.user?.username || 'anonymous',
+      user: (req as any).username || 'anonymous',
       ip: req.ip
     });
   });
