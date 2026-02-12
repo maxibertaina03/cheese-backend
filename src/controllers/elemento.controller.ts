@@ -11,22 +11,6 @@ import { AuthRequest } from '../middlewares/auth';
 
 export class ElementoController {
 
-  // GET /api/elementos - Listar todos los elementos activos
-  static async getAll(req: AuthRequest, res: Response) {
-    try {
-      const elementoRepo = AppDataSource.getRepository(Elemento);
-      
-      const elementos = await elementoRepo.find({
-        where: { activo: true },
-        relations: ['motivoEgreso', 'creadoPor', 'modificadoPor'],
-        order: { createdAt: 'DESC' },
-      });
-
-      res.json(elementos);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
 
   // GET /api/elementos/:id - Obtener un elemento específico
   static async getOne(req: AuthRequest, res: Response) {
