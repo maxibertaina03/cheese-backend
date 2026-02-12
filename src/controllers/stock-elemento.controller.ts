@@ -309,15 +309,14 @@ export class StockElementoController {
     try {
       const stockRepo = AppDataSource.getRepository(StockElemento);
       
-      const stocksBajos = await stockRepo.find({
-        where: {
-          activo: true,
-          stockMinimo: MoreThan(0),
-          stockActual: LessThanOrEqual(() => 'stockMinimo'),
-        },
-        relations: ['tipo'],
-        order: { stockActual: 'ASC' },
-      });
+      const stocksBajos = await stockRepo
+        .createQueryBuilder('stock')
+        .leftJoinAndSelect('stock.tipo', 'tipo')
+        .where('stock.activo = :activo', { activo: true })
+        .andWhere('stock.stockMinimo > 0')
+        .andWhere('stock.stockActual <= stock.stockMinimo')
+        .orderBy('stock.stockActual', 'ASC')
+        .getMany();
 
       res.json({
         total: stocksBajos.length,
