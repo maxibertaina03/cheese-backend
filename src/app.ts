@@ -7,13 +7,15 @@ import productoRoutes from './routes/producto.routes';
 import unidadRoutes from './routes/unidad.routes';
 import tipoQuesoRoutes from './routes/tipoQueso.routes';
 import particionRoutes from './routes/particion.routes';
-import motivoRoutes from './routes/motivo.routes'; // 🆕
+import motivoRoutes from './routes/motivo.routes';
 import authRoutes from './routes/auth.routes';
 import usuarioRoutes from './routes/usuario.routes';
+import reportesRoutes from './routes/reportes.routes';
+import alertasRoutes from './routes/alertas.routes';
+import elementoRoutes from './routes/elemento.routes'; // 🆕
+import stockElementoRoutes from './routes/stock-elemento.routes'; // 🆕
+import tipoElementoRoutes from './routes/tipo-elemento.routes'; // 🆕
 import logger, { requestLogger, errorHandler } from './utils/logger';
-import reportesRoutes from './routes/reportes.routes'; // ✨ NUEVO
-import alertasRoutes from './routes/alertas.routes'; // ✨ NUEVO
-
 
 const app = express();
 
@@ -42,12 +44,16 @@ app.use('/api/tipos-queso', tipoQuesoRoutes);
 app.use('/api/productos', productoRoutes);
 app.use('/api/unidades', unidadRoutes);
 app.use('/api/particiones', particionRoutes);
-app.use('/api/motivos', motivoRoutes); // 🆕
+app.use('/api/motivos', motivoRoutes);
 app.use('/api/usuarios', usuarioRoutes);
-app.use(errorHandler);
-// ✨ NUEVAS RUTAS
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/alertas', alertasRoutes);
+app.use('/api/elementos', elementoRoutes); // 🆕
+app.use('/api/stock-elementos', stockElementoRoutes); // 🆕
+app.use('/api/tipos-elemento', tipoElementoRoutes); // 🆕
+
+app.use(errorHandler);
+
 app.get('/', (_req, res) => res.send('Cheese-stock API ok'));
 
 export default app;
