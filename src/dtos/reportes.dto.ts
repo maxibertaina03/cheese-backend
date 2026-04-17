@@ -1,6 +1,16 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
 
+export class DashboardQueryDto {
+  @IsOptional()
+  @IsDateString()
+  fechaInicio?: string;
+
+  @IsOptional()
+  @IsDateString()
+  fechaFin?: string;
+}
+
 export class VentasQueryDto {
   @IsDateString()
   fechaInicio!: string;
@@ -9,7 +19,7 @@ export class VentasQueryDto {
   fechaFin!: string;
 }
 
-export class TopProductosQueryDto {
+export class TopProductosQueryDto extends DashboardQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -17,3 +27,5 @@ export class TopProductosQueryDto {
   @Max(50)
   limit?: number;
 }
+
+export class ExportReportQueryDto extends DashboardQueryDto {}

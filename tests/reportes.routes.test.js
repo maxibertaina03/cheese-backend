@@ -59,4 +59,62 @@ module.exports = [
       }
     },
   },
+  {
+    name: 'GET /api/reportes/dashboard rechaza rango incompleto',
+    run: async () => {
+      const server = await startJsonServer('/api/reportes', reportesRouter);
+      const token = signAuthToken({
+        id: 1,
+        rol: 'admin',
+        username: 'maxi',
+      });
+
+      try {
+        const { response, body } = await requestJson(
+          server,
+          '/api/reportes/dashboard?fechaInicio=2026-04-01',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        assert.equal(response.status, 400);
+        assert.equal(body.error, 'El rango de fechas es incompleto');
+      } finally {
+        server.close();
+      }
+    },
+  },
+  {
+    name: 'GET /api/reportes/export/excel rechaza rango incompleto',
+    run: async () => {
+      const server = await startJsonServer('/api/reportes', reportesRouter);
+      const token = signAuthToken({
+        id: 1,
+        rol: 'admin',
+        username: 'maxi',
+      });
+
+      try {
+        const { response, body } = await requestJson(
+          server,
+          '/api/reportes/export/excel?fechaFin=2026-04-20',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        assert.equal(response.status, 400);
+        assert.equal(body.error, 'El rango de fechas es incompleto');
+      } finally {
+        server.close();
+      }
+    },
+  },
 ];
