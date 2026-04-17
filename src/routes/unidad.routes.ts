@@ -7,6 +7,13 @@ import { AppDataSource } from '../config/database';
 import { Unidad } from '../entities/Unidad';
 import { UnidadController } from '../controllers/unidad.controller';
 import { auth, requireRole } from '../middlewares/auth';
+import {
+  AddParticionDto,
+  CreateUnidadDto,
+  UnidadIdParamDto,
+  UpdateUnidadDto,
+} from '../dtos/unidad.dto';
+import { validateDto } from '../middlewares/validation.middleware';
 
 const router = Router();
 
@@ -39,11 +46,11 @@ router.get('/historial', auth, getHistorial);
 
 // Rutas principales
 router.get('/', auth, UnidadController.getAll);
-router.get('/:id', auth, UnidadController.getOne);
-router.post('/', auth, requireRole('admin'), UnidadController.create);
-router.put('/:id', auth, requireRole('admin'), UnidadController.update);
-router.delete('/:id', auth, requireRole('admin'), UnidadController.delete);
-router.delete('/:id/hard', auth, requireRole('admin'), UnidadController.hardDelete);
-router.post('/:id/particiones', auth, requireRole('admin'), UnidadController.addParticiones);
+router.get('/:id', auth, validateDto(UnidadIdParamDto, 'params'), UnidadController.getOne);
+router.post('/', auth, requireRole('admin'), validateDto(CreateUnidadDto), UnidadController.create);
+router.put('/:id', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), validateDto(UpdateUnidadDto), UnidadController.update);
+router.delete('/:id', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), UnidadController.delete);
+router.delete('/:id/hard', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), UnidadController.hardDelete);
+router.post('/:id/particiones', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), validateDto(AddParticionDto), UnidadController.addParticiones);
 
 export default router;

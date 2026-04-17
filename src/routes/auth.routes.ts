@@ -3,11 +3,13 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../config/database';
 import { getOptionalAuthUser, signAuthToken, verifyAuthToken } from '../config/auth';
+import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { Usuario } from '../entities/Usuario';
+import { validateDto } from '../middlewares/validation.middleware';
 
 const router = Router();
 
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', validateDto(RegisterDto), async (req: Request, res: Response) => {
   try {
     const { username, password, rol = 'usuario' } = req.body;
     const actor = getOptionalAuthUser(req);
@@ -86,7 +88,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', validateDto(LoginDto), async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 

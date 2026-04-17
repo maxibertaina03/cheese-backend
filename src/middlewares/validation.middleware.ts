@@ -1,66 +1,48 @@
-// src/middlewares/validation.middleware.ts
-import { Request, Response, NextFunction } from 'express';
+import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { NextFunction, Request, Response } from 'express';
 
-export function validateDto(dtoClass: any) {
+type ValidationSource = 'body' | 'query' | 'params';
+
+const formatErrors = (errors: ValidationError[]): Array<{ field: string; errors: string[] }> => {
+  return errors.flatMap((error) => {
+    const currentErrors = Object.values(error.constraints || {});
+    const nestedErrors = error.children?.length ? formatErrors(error.children) : [];
+
+    if (!nestedErrors.length) {
+      return [{ field: error.property, errors: currentErrors }];
+    }
+
+    return nestedErrors.map((nested) => ({
+      field: `${error.property}.${nested.field}`,
+      errors: nested.errors,
+    }));
+  });
+};
+
+export function validateDto<T extends object>(dtoClass: new () => T, source: ValidationSource = 'body') {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const dtoObj = plainToClass(dtoClass, req.body);
-    const errors: ValidationError[] = await validate(dtoObj);
+    const rawPayload = req[source] && typeof req[source] === 'object'
+      ? req[source]
+      : {};
+
+    const dtoObj = plainToInstance(dtoClass, rawPayload, {
+      enableImplicitConversion: true,
+    }) ?? new dtoClass();
+
+    const errors = await validate(dtoObj, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
 
     if (errors.length > 0) {
-      const messages = errors.map(error => ({
-        field: error.property,
-        errors: Object.values(error.constraints || {})
-      }));
-
       return res.status(400).json({
-        error: 'Validación fallida',
-        details: messages
+        error: 'Validacion fallida',
+        details: formatErrors(errors),
       });
     }
 
-    req.body = dtoObj;
+    req[source] = dtoObj as Request[ValidationSource];
     next();
   };
-}
-
-// DTOs de ejemplo
-import { IsString, IsNumber, IsOptional, Min, MaxLength } from 'class-validator';
-
-export class CreateUnidadDto {
-  @IsNumber()
-  @Min(1)
-  productoId!: number;
-
-  @IsNumber()
-  @Min(0.01)
-  pesoInicial!: number;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  observacionesIngreso?: string;
-
-  @IsNumber()
-  @IsOptional()
-  motivoId?: number;
-}
-
-export class CreateProductoDto {
-  @IsString()
-  @MaxLength(100)
-  nombre!: string;
-
-  @IsString()
-  @MaxLength(5)
-  plu!: string;
-
-  @IsNumber()
-  tipoQuesoId!: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  precioPorKilo?: number;
 }

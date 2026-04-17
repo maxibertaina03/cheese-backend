@@ -1,28 +1,158 @@
-// src/controllers/reportes.controller.ts
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
 import { AppDataSource } from '../config/database';
-import { Unidad } from '../entities/Unidad';
 import { Particion } from '../entities/Particion';
-import { Between } from 'typeorm';
+import { Unidad } from '../entities/Unidad';
+import { AuthRequest } from '../middlewares/auth';
+
+type RawVenta = {
+  fecha: string;
+  producto: string;
+  totalPeso: string | number | null;
+  cantidadCortes: string | number | null;
+  motivo?: string | null;
+};
+
+type RawTopProducto = {
+  productoId: string | number;
+  nombre: string;
+  totalVendido: string | number | null;
+  cantidadCortes: string | number | null;
+  promedioCorte: string | number | null;
+};
+
+type RawInventario = {
+  cantidad: string | number | null;
+  pesoTotal: string | number | null;
+  precioKilo?: string | number | null;
+  producto?: string | null;
+  tipoQueso?: string | null;
+  valorTotal?: string | number | null;
+};
+
+const toNumber = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined || value === '') {
+    return 0;
+  }
+
+  return Number(value);
+};
+
+const startOfDay = (date: Date) => {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+};
+
+const endOfDay = (date: Date) => {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+};
+
+const formatVenta = (row: RawVenta) => ({
+  fecha: row.fecha,
+  producto: row.producto,
+  motivo: row.motivo ?? null,
+  totalPeso: toNumber(row.totalPeso),
+  cantidadCortes: toNumber(row.cantidadCortes),
+});
+
+const formatTopProducto = (row: RawTopProducto) => ({
+  productoId: Number(row.productoId),
+  nombre: row.nombre,
+  totalVendido: toNumber(row.totalVendido),
+  cantidadCortes: toNumber(row.cantidadCortes),
+  promedioCorte: toNumber(row.promedioCorte),
+});
+
+const formatInventarioActual = (row: RawInventario) => ({
+  cantidad: toNumber(row.cantidad),
+  pesoTotal: toNumber(row.pesoTotal),
+  tipoQueso: row.tipoQueso ?? 'Sin tipo',
+});
+
+const formatInventarioValorizado = (row: RawInventario) => ({
+  producto: row.producto ?? 'Sin producto',
+  cantidad: toNumber(row.cantidad),
+  pesoTotal: toNumber(row.pesoTotal),
+  precioKilo: toNumber(row.precioKilo),
+  valorTotal: toNumber(row.valorTotal),
+});
 
 export class ReportesController {
-  
-  // GET /api/reportes/dashboard
-  static async getDashboard(req: AuthRequest, res: Response) {
-    try {
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      
-      const hace7dias = new Date();
-      hace7dias.setDate(hace7dias.getDate() - 7);
-      hace7dias.setHours(0, 0, 0, 0);
-      
-      const hace30dias = new Date();
-      hace30dias.setDate(hace30dias.getDate() - 30);
-      hace30dias.setHours(0, 0, 0, 0);
+  private static async getVentasPorPeriodo(inicio: Date, fin?: Date) {
+    const particionRepo = AppDataSource.getRepository(Particion);
+    const query = particionRepo
+      .createQueryBuilder('particion')
+      .leftJoin('particion.unidad', 'unidad')
+      .leftJoin('unidad.producto', 'producto')
+      .select('DATE(particion.createdAt)', 'fecha')
+      .addSelect('producto.nombre', 'producto')
+      .addSelect('SUM(particion.peso)', 'totalPeso')
+      .addSelect('COUNT(particion.id)', 'cantidadCortes')
+      .where('particion.createdAt >= :inicio', { inicio });
 
-      // Inventario actual
+    if (fin) {
+      query.andWhere('particion.createdAt <= :fin', { fin });
+    }
+
+    const ventas = await query
+      .groupBy('DATE(particion.createdAt)')
+      .addGroupBy('producto.nombre')
+      .orderBy('DATE(particion.createdAt)', 'ASC')
+      .addOrderBy('producto.nombre', 'ASC')
+      .getRawMany<RawVenta>();
+
+    return ventas.map(formatVenta);
+  }
+
+  private static async getTopProductosRows(limit: number) {
+    const particionRepo = AppDataSource.getRepository(Particion);
+    const topProductos = await particionRepo
+      .createQueryBuilder('particion')
+      .leftJoin('particion.unidad', 'unidad')
+      .leftJoin('unidad.producto', 'producto')
+      .select('producto.id', 'productoId')
+      .addSelect('producto.nombre', 'nombre')
+      .addSelect('SUM(particion.peso)', 'totalVendido')
+      .addSelect('COUNT(particion.id)', 'cantidadCortes')
+      .addSelect('AVG(particion.peso)', 'promedioCorte')
+      .groupBy('producto.id')
+      .addGroupBy('producto.nombre')
+      .orderBy('totalVendido', 'DESC')
+      .limit(limit)
+      .getRawMany<RawTopProducto>();
+
+    return topProductos.map(formatTopProducto);
+  }
+
+  private static async getInventarioValorizadoRows() {
+    const unidadRepo = AppDataSource.getRepository(Unidad);
+    const inventario = await unidadRepo
+      .createQueryBuilder('unidad')
+      .leftJoin('unidad.producto', 'producto')
+      .select('producto.nombre', 'producto')
+      .addSelect('COUNT(unidad.id)', 'cantidad')
+      .addSelect('SUM(unidad.pesoActual)', 'pesoTotal')
+      .addSelect('producto.precioPorKilo', 'precioKilo')
+      .addSelect('SUM(unidad.pesoActual * producto.precioPorKilo / 1000)', 'valorTotal')
+      .where('unidad.activa = true')
+      .andWhere('producto.precioPorKilo IS NOT NULL')
+      .groupBy('producto.id')
+      .addGroupBy('producto.nombre')
+      .addGroupBy('producto.precioPorKilo')
+      .orderBy('producto.nombre', 'ASC')
+      .getRawMany<RawInventario>();
+
+    return inventario.map(formatInventarioValorizado);
+  }
+
+  static async getDashboard(_req: AuthRequest, res: Response) {
+    try {
+      const hoy = startOfDay(new Date());
+      const hace7dias = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+      const hace30dias = startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+
       const unidadRepo = AppDataSource.getRepository(Unidad);
       const inventarioActual = await unidadRepo
         .createQueryBuilder('unidad')
@@ -33,91 +163,27 @@ export class ReportesController {
         .addSelect('tipo.nombre', 'tipoQueso')
         .where('unidad.activa = true')
         .groupBy('tipo.nombre')
-        .getRawMany();
+        .orderBy('tipo.nombre', 'ASC')
+        .getRawMany<RawInventario>();
 
-      // Ventas por período
-      const particionRepo = AppDataSource.getRepository(Particion);
-      
-      const ventasHoy = await particionRepo
-        .createQueryBuilder('particion')
-        .leftJoin('particion.unidad', 'unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('DATE(particion.createdAt)', 'fecha')
-        .addSelect('producto.nombre', 'producto')
-        .addSelect('SUM(particion.peso)', 'totalPeso')
-        .addSelect('COUNT(particion.id)', 'cantidadCortes')
-        .where('particion.createdAt >= :hoy', { hoy })
-        .groupBy('DATE(particion.createdAt)')
-        .addGroupBy('producto.nombre')
-        .getRawMany();
-
-      const ventasSemana = await particionRepo
-        .createQueryBuilder('particion')
-        .leftJoin('particion.unidad', 'unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('DATE(particion.createdAt)', 'fecha')
-        .addSelect('producto.nombre', 'producto')
-        .addSelect('SUM(particion.peso)', 'totalPeso')
-        .addSelect('COUNT(particion.id)', 'cantidadCortes')
-        .where('particion.createdAt >= :hace7dias', { hace7dias })
-        .groupBy('DATE(particion.createdAt)')
-        .addGroupBy('producto.nombre')
-        .getRawMany();
-
-      const ventasMes = await particionRepo
-        .createQueryBuilder('particion')
-        .leftJoin('particion.unidad', 'unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('DATE(particion.createdAt)', 'fecha')
-        .addSelect('producto.nombre', 'producto')
-        .addSelect('SUM(particion.peso)', 'totalPeso')
-        .addSelect('COUNT(particion.id)', 'cantidadCortes')
-        .where('particion.createdAt >= :hace30dias', { hace30dias })
-        .groupBy('DATE(particion.createdAt)')
-        .addGroupBy('producto.nombre')
-        .getRawMany();
-
-      // Top productos
-      const topProductos = await particionRepo
-        .createQueryBuilder('particion')
-        .leftJoin('particion.unidad', 'unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('producto.id', 'productoId')
-        .addSelect('producto.nombre', 'nombre')
-        .addSelect('SUM(particion.peso)', 'totalVendido')
-        .addSelect('COUNT(particion.id)', 'cantidadCortes')
-        .addSelect('AVG(particion.peso)', 'promedioCorte')
-        .groupBy('producto.id')
-        .addGroupBy('producto.nombre')
-        .orderBy('totalVendido', 'DESC')
-        .limit(10)
-        .getRawMany();
-
-      // Inventario valorizado
-      const inventarioValorizado = await unidadRepo
-        .createQueryBuilder('unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('producto.nombre', 'producto')
-        .addSelect('COUNT(unidad.id)', 'cantidad')
-        .addSelect('SUM(unidad.pesoActual)', 'pesoTotal')
-        .addSelect('producto.precioPorKilo', 'precioKilo')
-        .addSelect('SUM(unidad.pesoActual * producto.precioPorKilo / 1000)', 'valorTotal')
-        .where('unidad.activa = true')
-        .andWhere('producto.precioPorKilo IS NOT NULL')
-        .groupBy('producto.id')
-        .addGroupBy('producto.nombre')
-        .addGroupBy('producto.precioPorKilo')
-        .getRawMany();
+      const [ventasHoy, ventasSemana, ventasMes, topProductos, inventarioValorizado] = await Promise.all([
+        this.getVentasPorPeriodo(hoy),
+        this.getVentasPorPeriodo(hace7dias),
+        this.getVentasPorPeriodo(hace30dias),
+        this.getTopProductosRows(10),
+        this.getInventarioValorizadoRows(),
+      ]);
 
       res.json({
-        inventarioActual,
+        inventarioActual: inventarioActual.map(formatInventarioActual),
         ventas: {
           hoy: ventasHoy,
           semana: ventasSemana,
-          mes: ventasMes
+          mes: ventasMes,
         },
         topProductos,
-        inventarioValorizado
+        inventarioValorizado,
+        alertas: [],
       });
     } catch (error: any) {
       console.error('Error en getDashboard:', error);
@@ -125,19 +191,20 @@ export class ReportesController {
     }
   }
 
-  // GET /api/reportes/ventas
   static async getVentas(req: AuthRequest, res: Response) {
     try {
-      const { fechaInicio, fechaFin } = req.query;
-      
-      if (!fechaInicio || !fechaFin) {
-        return res.status(400).json({ 
-          error: 'Se requieren fechaInicio y fechaFin' 
+      const { fechaInicio, fechaFin } = req.query as { fechaInicio: string; fechaFin: string };
+      const inicio = startOfDay(new Date(fechaInicio));
+      const fin = endOfDay(new Date(fechaFin));
+
+      if (inicio > fin) {
+        return res.status(400).json({
+          error: 'El rango de fechas es invalido',
+          details: 'fechaInicio no puede ser mayor a fechaFin',
         });
       }
 
       const particionRepo = AppDataSource.getRepository(Particion);
-      
       const ventas = await particionRepo
         .createQueryBuilder('particion')
         .leftJoin('particion.unidad', 'unidad')
@@ -148,69 +215,33 @@ export class ReportesController {
         .addSelect('SUM(particion.peso)', 'totalPeso')
         .addSelect('COUNT(particion.id)', 'cantidadCortes')
         .addSelect('motivo.nombre', 'motivo')
-        .where('particion.createdAt BETWEEN :inicio AND :fin', { 
-          inicio: new Date(fechaInicio as string), 
-          fin: new Date(fechaFin as string) 
-        })
+        .where('particion.createdAt BETWEEN :inicio AND :fin', { inicio, fin })
         .groupBy('DATE(particion.createdAt)')
         .addGroupBy('producto.nombre')
         .addGroupBy('motivo.nombre')
-        .getRawMany();
+        .orderBy('DATE(particion.createdAt)', 'ASC')
+        .addOrderBy('producto.nombre', 'ASC')
+        .getRawMany<RawVenta>();
 
-      res.json(ventas);
+      res.json(ventas.map(formatVenta));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  // GET /api/reportes/top-productos
   static async getTopProductos(req: AuthRequest, res: Response) {
     try {
-      const limit = parseInt(req.query.limit as string) || 10;
-      
-      const particionRepo = AppDataSource.getRepository(Particion);
-      
-      const topProductos = await particionRepo
-        .createQueryBuilder('particion')
-        .leftJoin('particion.unidad', 'unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('producto.id', 'productoId')
-        .addSelect('producto.nombre', 'nombre')
-        .addSelect('SUM(particion.peso)', 'totalVendido')
-        .addSelect('COUNT(particion.id)', 'cantidadCortes')
-        .addSelect('AVG(particion.peso)', 'promedioCorte')
-        .groupBy('producto.id')
-        .addGroupBy('producto.nombre')
-        .orderBy('totalVendido', 'DESC')
-        .limit(limit)
-        .getRawMany();
-
+      const { limit = 10 } = req.query as { limit?: number };
+      const topProductos = await this.getTopProductosRows(limit);
       res.json(topProductos);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  // GET /api/reportes/inventario-valorizado
-  static async getInventarioValorizado(req: AuthRequest, res: Response) {
+  static async getInventarioValorizado(_req: AuthRequest, res: Response) {
     try {
-      const unidadRepo = AppDataSource.getRepository(Unidad);
-      
-      const inventario = await unidadRepo
-        .createQueryBuilder('unidad')
-        .leftJoin('unidad.producto', 'producto')
-        .select('producto.nombre', 'producto')
-        .addSelect('COUNT(unidad.id)', 'cantidad')
-        .addSelect('SUM(unidad.pesoActual)', 'pesoTotal')
-        .addSelect('producto.precioPorKilo', 'precioKilo')
-        .addSelect('SUM(unidad.pesoActual * producto.precioPorKilo / 1000)', 'valorTotal')
-        .where('unidad.activa = true')
-        .andWhere('producto.precioPorKilo IS NOT NULL')
-        .groupBy('producto.id')
-        .addGroupBy('producto.nombre')
-        .addGroupBy('producto.precioPorKilo')
-        .getRawMany();
-
+      const inventario = await this.getInventarioValorizadoRows();
       res.json(inventario);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
