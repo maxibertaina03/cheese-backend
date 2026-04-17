@@ -8,9 +8,8 @@ import { cacheMiddleware } from '../config/redis';
 
 const router = Router();
 
-router.get('/', auth, ProductoController.getAll);
-router.get('/:id', auth, ProductoController.getOne);
 router.get('/', auth, cacheMiddleware(300), ProductoController.getAll);
+router.get('/:id', auth, ProductoController.getOne);
 router.post('/', auth, requireRole('admin'), ProductoController.create);
 router.put('/:id', auth, requireRole('admin'), ProductoController.update);
 router.put('/:id/precio', auth, requireRole('admin'), ProductoController.updatePrecio);

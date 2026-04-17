@@ -1,10 +1,8 @@
 // ============================================
 // 2. ARCHIVO: src/middlewares/auth.ts
 // ============================================
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_temporal';
+import { verifyAuthToken } from '../config/auth';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -27,7 +25,7 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
       return res.status(401).json({ error: 'No autorizado - Token inválido' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = verifyAuthToken(token);
     req.user = decoded;
     next();
   } catch (error) {

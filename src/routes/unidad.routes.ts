@@ -43,6 +43,7 @@ router.get('/:id', auth, UnidadController.getOne);
 router.post('/', auth, requireRole('admin'), UnidadController.create);
 router.put('/:id', auth, requireRole('admin'), UnidadController.update);
 router.delete('/:id', auth, requireRole('admin'), UnidadController.delete);
+router.delete('/:id/hard', auth, requireRole('admin'), UnidadController.hardDelete);
 router.post('/:id/particiones', auth, requireRole('admin'), UnidadController.addParticiones);
 
 export default router;

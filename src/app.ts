@@ -19,11 +19,37 @@ import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
 
+const localOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const configuredOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
+
+const isAllowedOrigin = (origin: string | undefined) => {
+  if (!origin) {
+    return true;
+  }
+
+  if (localOrigins.includes(origin) || configuredOrigins.includes(origin)) {
+    return true;
+  }
+
+  if (allowVercelPreviews && origin.endsWith('.vercel.app')) {
+    return true;
+  }
+
+  if (!configuredOrigins.length && origin.includes('vercel.app')) {
+    logger.warn('CORS_ORIGINS no configurado. Se acepta origen Vercel por compatibilidad temporal.');
+    return true;
+  }
+
+  return false;
+};
+
 const corsOptions = {
   origin: function (origin: string | undefined, callback: any) {
-    if (!origin || 
-        origin.includes('vercel.app') || 
-        origin === 'http://localhost:3001') {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
