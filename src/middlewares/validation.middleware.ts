@@ -42,7 +42,23 @@ export function validateDto<T extends object>(dtoClass: new () => T, source: Val
       });
     }
 
-    req[source] = dtoObj as Request[ValidationSource];
+    const sanitizedPayload = dtoObj as Record<string, unknown>;
+    const target = req[source];
+
+    if (target && typeof target === 'object') {
+      Object.keys(target as Record<string, unknown>).forEach((key) => {
+        delete (target as Record<string, unknown>)[key];
+      });
+      Object.assign(target as Record<string, unknown>, sanitizedPayload);
+    } else {
+      Object.defineProperty(req, source, {
+        value: sanitizedPayload,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+    }
+
     next();
   };
 }

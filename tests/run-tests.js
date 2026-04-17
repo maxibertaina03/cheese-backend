@@ -1,5 +1,7 @@
 const suites = [
   ...require('./auth.routes.test'),
+  ...require('./reportes.controller.test'),
+  ...require('./reportes.routes.test'),
   ...require('./unidad.routes.test'),
   ...require('./unidad.controller.test'),
 ];
