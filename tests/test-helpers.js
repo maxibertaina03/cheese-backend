@@ -34,8 +34,17 @@ function createMockResponse() {
   return {
     statusCode: 200,
     body: undefined,
+    headers: {},
     status(code) {
       this.statusCode = code;
+      return this;
+    },
+    setHeader(name, value) {
+      this.headers[name] = value;
+      return this;
+    },
+    send(payload) {
+      this.body = payload;
       return this;
     },
     json(payload) {

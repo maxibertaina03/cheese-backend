@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
+import { Brackets, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../config/database';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
@@ -78,6 +79,18 @@ type DashboardSnapshot = {
   };
 };
 
+type InventarioPdfQuery = {
+  search?: string;
+  tipoQuesoId?: number;
+  searchObservaciones?: string;
+};
+
+type HistorialPdfQuery = InventarioPdfQuery & {
+  estado?: 'todos' | 'activos' | 'agotados';
+  fechaInicio?: string;
+  fechaFin?: string;
+};
+
 const toNumber = (value: string | number | null | undefined) => {
   if (value === null || value === undefined || value === '') {
     return 0;
@@ -132,6 +145,19 @@ const formatDateParam = (date: Date) => date.toISOString().slice(0, 10);
 
 const formatKg = (grams: number) => Number((grams / 1000).toFixed(2));
 
+const formatKgLabel = (grams: string | number | null | undefined) =>
+  `${formatKg(toNumber(grams)).toFixed(2)} kg`;
+
+const formatDateLabel = (date: Date | string | null | undefined) => {
+  if (!date) {
+    return '-';
+  }
+
+  return new Date(date).toLocaleDateString('es-AR');
+};
+
+const normalizeSearch = (value: string | undefined) => value?.trim().toLowerCase() ?? '';
+
 const parseOptionalRange = (query: { fechaInicio?: string; fechaFin?: string }) => {
   if (!query.fechaInicio && !query.fechaFin) {
     return null;
@@ -179,6 +205,23 @@ const buildPdfBuffer = (doc: PDFKit.PDFDocument) =>
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
   });
+
+const drawSectionTitle = (doc: PDFKit.PDFDocument, title: string) => {
+  doc.moveDown(0.8);
+  doc.font('Helvetica-Bold').fontSize(13).text(title);
+  doc.moveDown(0.3);
+};
+
+const ensurePdfSpace = (doc: PDFKit.PDFDocument, height: number, onNewPage?: () => void) => {
+  if (doc.y + height <= doc.page.height - doc.page.margins.bottom) {
+    return;
+  }
+
+  doc.addPage();
+  onNewPage?.();
+};
+
+const textOrDash = (value: string | null | undefined) => value?.trim() || '-';
 
 export class ReportesController {
   private static async getVentasPorPeriodo(range: DateRange) {
@@ -339,6 +382,224 @@ export class ReportesController {
         ? `${formatDateParam(range.fechaInicio)} a ${formatDateParam(range.fechaFin)}`
         : 'ultimos 7 dias',
     };
+  }
+
+  private static applyUnidadSearch(
+    query: SelectQueryBuilder<Unidad>,
+    search: string,
+    searchObservacionesOnly = false
+  ) {
+    if (!search) {
+      return;
+    }
+
+    const searchLike = `%${search}%`;
+    const rawSearchLike = `%${search}%`;
+
+    if (searchObservacionesOnly) {
+      query.andWhere('LOWER(COALESCE(unidad.observacionesIngreso, \'\')) LIKE :searchLike', {
+        searchLike,
+      });
+      return;
+    }
+
+    query.andWhere(
+      new Brackets((qb) => {
+        qb.where('LOWER(producto.nombre) LIKE :searchLike', { searchLike })
+          .orWhere('LOWER(producto.plu) LIKE :searchLike', { searchLike })
+          .orWhere('CAST(unidad.id AS TEXT) LIKE :rawSearchLike', { rawSearchLike })
+          .orWhere('LOWER(COALESCE(unidad.observacionesIngreso, \'\')) LIKE :searchLike', {
+            searchLike,
+          });
+      })
+    );
+  }
+
+  private static async getInventarioPdfUnidades(filters: InventarioPdfQuery) {
+    const unidadRepo = AppDataSource.getRepository(Unidad);
+    const query = unidadRepo
+      .createQueryBuilder('unidad')
+      .leftJoinAndSelect('unidad.producto', 'producto')
+      .leftJoinAndSelect('producto.tipoQueso', 'tipo')
+      .leftJoinAndSelect('unidad.motivo', 'motivo')
+      .leftJoinAndSelect('unidad.particiones', 'particion')
+      .leftJoinAndSelect('particion.motivo', 'particionMotivo')
+      .where('unidad.activa = true')
+      .orderBy('unidad.createdAt', 'DESC')
+      .addOrderBy('particion.createdAt', 'ASC');
+
+    if (filters.tipoQuesoId) {
+      query.andWhere('tipo.id = :tipoQuesoId', { tipoQuesoId: filters.tipoQuesoId });
+    }
+
+    this.applyUnidadSearch(
+      query,
+      normalizeSearch(filters.search),
+      filters.searchObservaciones === 'true'
+    );
+
+    return query.getMany();
+  }
+
+  private static async getHistorialPdfUnidades(filters: HistorialPdfQuery, range?: DateRange) {
+    const unidadRepo = AppDataSource.getRepository(Unidad);
+    const query = unidadRepo
+      .createQueryBuilder('unidad')
+      .withDeleted()
+      .leftJoinAndSelect('unidad.producto', 'producto')
+      .leftJoinAndSelect('producto.tipoQueso', 'tipo')
+      .leftJoinAndSelect('unidad.motivo', 'motivo')
+      .leftJoinAndSelect('unidad.particiones', 'particion')
+      .leftJoinAndSelect('particion.motivo', 'particionMotivo')
+      .where('1 = 1')
+      .orderBy('unidad.createdAt', 'DESC')
+      .addOrderBy('particion.createdAt', 'ASC');
+
+    if (filters.estado === 'activos') {
+      query.andWhere('unidad.activa = true');
+      query.andWhere('unidad.deletedAt IS NULL');
+    }
+
+    if (filters.estado === 'agotados') {
+      query.andWhere('(unidad.activa = false OR unidad.deletedAt IS NOT NULL)');
+    }
+
+    if (filters.tipoQuesoId) {
+      query.andWhere('tipo.id = :tipoQuesoId', { tipoQuesoId: filters.tipoQuesoId });
+    }
+
+    if (range) {
+      query.andWhere('unidad.createdAt BETWEEN :fechaInicio AND :fechaFin', range);
+    }
+
+    this.applyUnidadSearch(query, normalizeSearch(filters.search));
+
+    return query.getMany();
+  }
+
+  private static drawInventarioTable(doc: PDFKit.PDFDocument, unidades: Unidad[]) {
+    const columns = [
+      { label: 'ID', x: 35, width: 40 },
+      { label: 'Producto', x: 75, width: 170 },
+      { label: 'PLU', x: 250, width: 70 },
+      { label: 'Tipo', x: 320, width: 85 },
+      { label: 'Inicial', x: 405, width: 65 },
+      { label: 'Actual', x: 470, width: 65 },
+      { label: 'Egreso', x: 535, width: 65 },
+      { label: 'Motivo', x: 600, width: 95 },
+      { label: 'Ingreso', x: 695, width: 90 },
+    ];
+
+    const drawHeader = () => {
+      doc.font('Helvetica-Bold').fontSize(8);
+      columns.forEach((column) => doc.text(column.label, column.x, doc.y, { width: column.width }));
+      doc.moveDown(0.4);
+      doc.moveTo(35, doc.y).lineTo(790, doc.y).strokeColor('#cccccc').stroke();
+      doc.moveDown(0.4);
+    };
+
+    drawHeader();
+
+    if (!unidades.length) {
+      doc.font('Helvetica').fontSize(10).text('No hay unidades para los filtros seleccionados.');
+      return;
+    }
+
+    unidades.forEach((unidad) => {
+      ensurePdfSpace(doc, 28, drawHeader);
+      const rowY = doc.y;
+      const egreso = toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual);
+      const values = [
+        `#${unidad.id}`,
+        unidad.producto?.nombre ?? '-',
+        unidad.producto?.plu ?? '-',
+        unidad.producto?.tipoQueso?.nombre ?? '-',
+        formatKgLabel(unidad.pesoInicial),
+        formatKgLabel(unidad.pesoActual),
+        formatKgLabel(egreso),
+        textOrDash(unidad.motivo?.nombre),
+        formatDateLabel(unidad.createdAt),
+      ];
+
+      doc.font('Helvetica').fontSize(8);
+      columns.forEach((column, index) => {
+        doc.text(values[index], column.x, rowY, { width: column.width, height: 24 });
+      });
+      doc.y = rowY + 28;
+    });
+  }
+
+  private static drawHistorialTable(doc: PDFKit.PDFDocument, unidades: Unidad[]) {
+    const columns = [
+      { label: 'ID', x: 35, width: 40 },
+      { label: 'Producto', x: 75, width: 185 },
+      { label: 'Estado', x: 260, width: 65 },
+      { label: 'Tipo', x: 325, width: 85 },
+      { label: 'Inicial', x: 410, width: 65 },
+      { label: 'Actual', x: 475, width: 65 },
+      { label: 'Egreso', x: 540, width: 65 },
+      { label: 'Ingreso', x: 605, width: 80 },
+      { label: 'Cortes', x: 685, width: 75 },
+    ];
+
+    const drawHeader = () => {
+      doc.font('Helvetica-Bold').fontSize(8);
+      columns.forEach((column) => doc.text(column.label, column.x, doc.y, { width: column.width }));
+      doc.moveDown(0.4);
+      doc.moveTo(35, doc.y).lineTo(790, doc.y).strokeColor('#cccccc').stroke();
+      doc.moveDown(0.4);
+    };
+
+    drawHeader();
+
+    if (!unidades.length) {
+      doc.font('Helvetica').fontSize(10).text('No hay unidades para los filtros seleccionados.');
+      return;
+    }
+
+    unidades.forEach((unidad) => {
+      const cortes = unidad.particiones ?? [];
+      const detailLines = [
+        `PLU: ${unidad.producto?.plu ?? '-'} | Motivo ingreso: ${textOrDash(unidad.motivo?.nombre)}`,
+        unidad.observacionesIngreso ? `Obs ingreso: ${unidad.observacionesIngreso}` : '',
+        cortes.length
+          ? `Cortes: ${cortes
+              .map((corte) => `${formatDateLabel(corte.createdAt)} ${formatKgLabel(corte.peso)} ${textOrDash(corte.motivo?.nombre)}`)
+              .join(' | ')}`
+          : 'Cortes: sin cortes registrados',
+      ].filter(Boolean);
+      const rowHeight = 30 + detailLines.length * 11;
+
+      ensurePdfSpace(doc, rowHeight, drawHeader);
+      const rowY = doc.y;
+      const egreso = toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual);
+      const estado = unidad.deletedAt ? 'Eliminada' : unidad.activa ? 'Activa' : 'Agotada';
+      const values = [
+        `#${unidad.id}`,
+        unidad.producto?.nombre ?? '-',
+        estado,
+        unidad.producto?.tipoQueso?.nombre ?? '-',
+        formatKgLabel(unidad.pesoInicial),
+        formatKgLabel(unidad.pesoActual),
+        formatKgLabel(egreso),
+        formatDateLabel(unidad.createdAt),
+        String(cortes.length),
+      ];
+
+      doc.font('Helvetica').fontSize(8);
+      columns.forEach((column, index) => {
+        doc.text(values[index], column.x, rowY, { width: column.width, height: 24 });
+      });
+
+      doc.font('Helvetica').fontSize(7).fillColor('#444444');
+      let detailY = rowY + 18;
+      detailLines.forEach((line) => {
+        doc.text(line, 75, detailY, { width: 700, height: 10 });
+        detailY += 11;
+      });
+      doc.fillColor('#000000');
+      doc.y = rowY + rowHeight;
+    });
   }
 
   static async getDashboard(req: AuthRequest, res: Response) {
@@ -559,6 +820,101 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="reporte_${fileSuffix}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportInventarioPdf(req: AuthRequest, res: Response) {
+    try {
+      const filters = req.query as InventarioPdfQuery;
+      const unidades = await this.getInventarioPdfUnidades(filters);
+      const totalPeso = unidades.reduce((sum, unidad) => sum + toNumber(unidad.pesoActual), 0);
+      const totalEgreso = unidades.reduce(
+        (sum, unidad) => sum + toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual),
+        0
+      );
+      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape' });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      doc.font('Helvetica-Bold').fontSize(18).text('Inventario actual de quesos');
+      doc.moveDown(0.4);
+      doc.font('Helvetica').fontSize(10);
+      doc.text(`Generado: ${formatDateLabel(new Date())}`);
+      doc.text(`Unidades: ${unidades.length}`);
+      doc.text(`Peso actual total: ${formatKgLabel(totalPeso)}`);
+      doc.text(`Egreso acumulado: ${formatKgLabel(totalEgreso)}`);
+      if (filters.search) {
+        doc.text(`Busqueda: ${filters.search}`);
+      }
+
+      drawSectionTitle(doc, 'Detalle');
+      this.drawInventarioTable(doc, unidades);
+
+      doc.end();
+      const buffer = await bufferPromise;
+      const fileSuffix = formatDateParam(new Date());
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="inventario_${fileSuffix}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportHistorialPdf(req: AuthRequest, res: Response) {
+    try {
+      const filters = req.query as HistorialPdfQuery;
+      const rangeResult = parseOptionalRange({
+        fechaInicio: filters.fechaInicio,
+        fechaFin: filters.fechaFin,
+      });
+
+      if (rangeResult?.error) {
+        return res.status(rangeResult.error.status).json(rangeResult.error.payload);
+      }
+
+      const unidades = await this.getHistorialPdfUnidades(filters, rangeResult?.value);
+      const totalPeso = unidades.reduce((sum, unidad) => sum + toNumber(unidad.pesoInicial), 0);
+      const totalEgreso = unidades.reduce(
+        (sum, unidad) => sum + toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual),
+        0
+      );
+      const totalActivas = unidades.filter((unidad) => unidad.activa && !unidad.deletedAt).length;
+      const totalAgotadas = unidades.filter((unidad) => !unidad.activa || unidad.deletedAt).length;
+      const totalCortes = unidades.reduce((sum, unidad) => sum + (unidad.particiones?.length ?? 0), 0);
+      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape' });
+      const bufferPromise = buildPdfBuffer(doc);
+      const estadoLabel = filters.estado && filters.estado !== 'todos' ? filters.estado : 'todos';
+      const periodoLabel = rangeResult?.value
+        ? `${formatDateParam(rangeResult.value.fechaInicio)} a ${formatDateParam(rangeResult.value.fechaFin)}`
+        : 'sin rango';
+
+      doc.font('Helvetica-Bold').fontSize(18).text('Historial de quesos');
+      doc.moveDown(0.4);
+      doc.font('Helvetica').fontSize(10);
+      doc.text(`Generado: ${formatDateLabel(new Date())}`);
+      doc.text(`Periodo: ${periodoLabel}`);
+      doc.text(`Estado: ${estadoLabel}`);
+      doc.text(`Unidades: ${unidades.length} | Activas: ${totalActivas} | Agotadas/eliminadas: ${totalAgotadas}`);
+      doc.text(`Peso inicial total: ${formatKgLabel(totalPeso)} | Egreso total: ${formatKgLabel(totalEgreso)} | Cortes: ${totalCortes}`);
+      if (filters.search) {
+        doc.text(`Busqueda: ${filters.search}`);
+      }
+
+      drawSectionTitle(doc, 'Detalle de unidades y cortes');
+      this.drawHistorialTable(doc, unidades);
+
+      doc.end();
+      const buffer = await bufferPromise;
+      const fileSuffix = rangeResult?.value
+        ? `${formatDateParam(rangeResult.value.fechaInicio)}_${formatDateParam(rangeResult.value.fechaFin)}`
+        : formatDateParam(new Date());
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="historial_${fileSuffix}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
