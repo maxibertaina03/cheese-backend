@@ -208,7 +208,7 @@ const buildPdfBuffer = (doc: PDFKit.PDFDocument) =>
 
 const drawSectionTitle = (doc: PDFKit.PDFDocument, title: string) => {
   doc.moveDown(0.8);
-  doc.font('Helvetica-Bold').fontSize(13).text(title);
+  doc.fillColor('#111827').font('Helvetica-Bold').fontSize(13).text(title);
   doc.moveDown(0.3);
 };
 
@@ -222,6 +222,107 @@ const ensurePdfSpace = (doc: PDFKit.PDFDocument, height: number, onNewPage?: () 
 };
 
 const textOrDash = (value: string | null | undefined) => value?.trim() || '-';
+
+type PdfColumn = {
+  label: string;
+  x: number;
+  width: number;
+  align?: 'left' | 'right' | 'center';
+};
+
+const truncateText = (value: string, maxLength: number) =>
+  value.length > maxLength ? `${value.slice(0, maxLength - 1)}.` : value;
+
+const drawReportHeader = (
+  doc: PDFKit.PDFDocument,
+  title: string,
+  subtitle: string,
+  generatedAt = new Date()
+) => {
+  const { left, right, top } = doc.page.margins;
+  const width = doc.page.width - left - right;
+
+  doc.save();
+  doc.rect(left, top, width, 46).fill('#111827');
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text(title, left + 16, top + 11);
+  doc
+    .fillColor('#d1d5db')
+    .font('Helvetica')
+    .fontSize(9)
+    .text(subtitle, left + 16, top + 31)
+    .text(`Generado: ${formatDateLabel(generatedAt)}`, left + width - 190, top + 18, {
+      width: 170,
+      align: 'right',
+    });
+  doc.restore();
+  doc.y = top + 62;
+};
+
+const drawSummaryCards = (doc: PDFKit.PDFDocument, cards: Array<{ label: string; value: string }>) => {
+  const { left, right } = doc.page.margins;
+  const gap = 8;
+  const width = doc.page.width - left - right;
+  const cardWidth = (width - gap * (cards.length - 1)) / cards.length;
+  const y = doc.y;
+
+  cards.forEach((card, index) => {
+    const x = left + index * (cardWidth + gap);
+    doc.save();
+    doc.roundedRect(x, y, cardWidth, 38, 4).fill('#f3f4f6');
+    doc
+      .fillColor('#6b7280')
+      .font('Helvetica-Bold')
+      .fontSize(7)
+      .text(card.label.toUpperCase(), x + 8, y + 7, { width: cardWidth - 16 });
+    doc
+      .fillColor('#111827')
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .text(card.value, x + 8, y + 19, { width: cardWidth - 16 });
+    doc.restore();
+  });
+
+  doc.y = y + 50;
+};
+
+const drawPdfTableHeader = (doc: PDFKit.PDFDocument, columns: PdfColumn[]) => {
+  const y = doc.y;
+  const left = doc.page.margins.left;
+  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  doc.save();
+  doc.rect(left, y, width, 18).fill('#1f2937');
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(7.5);
+  columns.forEach((column) => {
+    doc.text(column.label, column.x, y + 5, {
+      width: column.width,
+      align: column.align ?? 'left',
+      height: 10,
+    });
+  });
+  doc.restore();
+  doc.y = y + 22;
+};
+
+const drawPdfFooter = (doc: PDFKit.PDFDocument) => {
+  const range = doc.bufferedPageRange();
+
+  for (let i = range.start; i < range.start + range.count; i += 1) {
+    doc.switchToPage(i);
+    const y = doc.page.height - 24;
+    doc
+      .fillColor('#6b7280')
+      .font('Helvetica')
+      .fontSize(7)
+      .text('Las Tres Estrellas - Sistema de stock', doc.page.margins.left, y, {
+        width: 260,
+      })
+      .text(`Pagina ${i + 1} de ${range.count}`, doc.page.width - doc.page.margins.right - 90, y, {
+        width: 90,
+        align: 'right',
+      });
+  }
+};
 
 export class ReportesController {
   private static async getVentasPorPeriodo(range: DateRange) {
@@ -488,106 +589,106 @@ export class ReportesController {
 
   private static drawInventarioTable(doc: PDFKit.PDFDocument, unidades: Unidad[]) {
     const columns = [
-      { label: 'ID', x: 35, width: 40 },
-      { label: 'Producto', x: 75, width: 170 },
-      { label: 'PLU', x: 250, width: 70 },
-      { label: 'Tipo', x: 320, width: 85 },
-      { label: 'Inicial', x: 405, width: 65 },
-      { label: 'Actual', x: 470, width: 65 },
-      { label: 'Egreso', x: 535, width: 65 },
-      { label: 'Motivo', x: 600, width: 95 },
-      { label: 'Ingreso', x: 695, width: 90 },
-    ];
+      { label: 'ID', x: 35, width: 38 },
+      { label: 'Producto', x: 78, width: 178 },
+      { label: 'PLU', x: 262, width: 76 },
+      { label: 'Tipo', x: 344, width: 82 },
+      { label: 'Inicial', x: 432, width: 66, align: 'right' },
+      { label: 'Actual', x: 504, width: 66, align: 'right' },
+      { label: 'Egreso', x: 576, width: 66, align: 'right' },
+      { label: 'Motivo', x: 650, width: 82 },
+      { label: 'Ingreso', x: 738, width: 68 },
+    ] as PdfColumn[];
 
-    const drawHeader = () => {
-      doc.font('Helvetica-Bold').fontSize(8);
-      columns.forEach((column) => doc.text(column.label, column.x, doc.y, { width: column.width }));
-      doc.moveDown(0.4);
-      doc.moveTo(35, doc.y).lineTo(790, doc.y).strokeColor('#cccccc').stroke();
-      doc.moveDown(0.4);
-    };
-
-    drawHeader();
+    drawPdfTableHeader(doc, columns);
 
     if (!unidades.length) {
       doc.font('Helvetica').fontSize(10).text('No hay unidades para los filtros seleccionados.');
       return;
     }
 
-    unidades.forEach((unidad) => {
-      ensurePdfSpace(doc, 28, drawHeader);
+    unidades.forEach((unidad, index) => {
+      ensurePdfSpace(doc, 24, () => drawPdfTableHeader(doc, columns));
       const rowY = doc.y;
       const egreso = toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual);
       const values = [
         `#${unidad.id}`,
-        unidad.producto?.nombre ?? '-',
+        truncateText(unidad.producto?.nombre ?? '-', 34),
         unidad.producto?.plu ?? '-',
-        unidad.producto?.tipoQueso?.nombre ?? '-',
+        truncateText(unidad.producto?.tipoQueso?.nombre ?? '-', 16),
         formatKgLabel(unidad.pesoInicial),
         formatKgLabel(unidad.pesoActual),
         formatKgLabel(egreso),
-        textOrDash(unidad.motivo?.nombre),
+        truncateText(textOrDash(unidad.motivo?.nombre), 18),
         formatDateLabel(unidad.createdAt),
       ];
 
-      doc.font('Helvetica').fontSize(8);
+      if (index % 2 === 0) {
+        doc.save().rect(doc.page.margins.left, rowY - 3, doc.page.width - doc.page.margins.left - doc.page.margins.right, 21).fill('#f9fafb').restore();
+      }
+
+      doc.fillColor('#111827').font('Helvetica').fontSize(7.5);
       columns.forEach((column, index) => {
-        doc.text(values[index], column.x, rowY, { width: column.width, height: 24 });
+        doc.text(values[index], column.x, rowY + 2, {
+          width: column.width,
+          height: 14,
+          align: column.align ?? 'left',
+        });
       });
-      doc.y = rowY + 28;
+      doc.y = rowY + 22;
     });
   }
 
   private static drawHistorialTable(doc: PDFKit.PDFDocument, unidades: Unidad[]) {
     const columns = [
-      { label: 'ID', x: 35, width: 40 },
-      { label: 'Producto', x: 75, width: 185 },
-      { label: 'Estado', x: 260, width: 65 },
-      { label: 'Tipo', x: 325, width: 85 },
-      { label: 'Inicial', x: 410, width: 65 },
-      { label: 'Actual', x: 475, width: 65 },
-      { label: 'Egreso', x: 540, width: 65 },
-      { label: 'Ingreso', x: 605, width: 80 },
-      { label: 'Cortes', x: 685, width: 75 },
-    ];
+      { label: 'ID', x: 35, width: 38 },
+      { label: 'Producto', x: 78, width: 178 },
+      { label: 'Estado', x: 262, width: 58 },
+      { label: 'Tipo', x: 326, width: 78 },
+      { label: 'Inicial', x: 410, width: 66, align: 'right' },
+      { label: 'Actual', x: 482, width: 66, align: 'right' },
+      { label: 'Egreso', x: 554, width: 66, align: 'right' },
+      { label: 'Ingreso', x: 628, width: 70 },
+      { label: 'Cortes', x: 708, width: 46, align: 'center' },
+    ] as PdfColumn[];
 
-    const drawHeader = () => {
-      doc.font('Helvetica-Bold').fontSize(8);
-      columns.forEach((column) => doc.text(column.label, column.x, doc.y, { width: column.width }));
-      doc.moveDown(0.4);
-      doc.moveTo(35, doc.y).lineTo(790, doc.y).strokeColor('#cccccc').stroke();
-      doc.moveDown(0.4);
-    };
-
-    drawHeader();
+    drawPdfTableHeader(doc, columns);
 
     if (!unidades.length) {
       doc.font('Helvetica').fontSize(10).text('No hay unidades para los filtros seleccionados.');
       return;
     }
 
-    unidades.forEach((unidad) => {
+    unidades.forEach((unidad, index) => {
       const cortes = unidad.particiones ?? [];
-      const detailLines = [
-        `PLU: ${unidad.producto?.plu ?? '-'} | Motivo ingreso: ${textOrDash(unidad.motivo?.nombre)}`,
-        unidad.observacionesIngreso ? `Obs ingreso: ${unidad.observacionesIngreso}` : '',
-        cortes.length
-          ? `Cortes: ${cortes
-              .map((corte) => `${formatDateLabel(corte.createdAt)} ${formatKgLabel(corte.peso)} ${textOrDash(corte.motivo?.nombre)}`)
-              .join(' | ')}`
-          : 'Cortes: sin cortes registrados',
-      ].filter(Boolean);
-      const rowHeight = 30 + detailLines.length * 11;
+      const cutLines = cortes.length
+        ? cortes
+            .slice(0, 4)
+            .map(
+              (corte, cutIndex) =>
+                `${cutIndex + 1}. ${formatDateLabel(corte.createdAt)} | ${formatKgLabel(corte.peso)} | ${textOrDash(corte.motivo?.nombre)}`
+            )
+        : ['Sin cortes registrados'];
+      if (cortes.length > 4) {
+        cutLines.push(`+ ${cortes.length - 4} cortes mas`);
+      }
 
-      ensurePdfSpace(doc, rowHeight, drawHeader);
+      const detailLines = [
+        `PLU ${unidad.producto?.plu ?? '-'} | Motivo ingreso: ${textOrDash(unidad.motivo?.nombre)}`,
+        unidad.observacionesIngreso ? `Obs ingreso: ${truncateText(unidad.observacionesIngreso, 135)}` : '',
+        `Detalle cortes: ${cutLines.join('   ')}`,
+      ].filter(Boolean);
+      const rowHeight = 25 + detailLines.length * 12;
+
+      ensurePdfSpace(doc, rowHeight, () => drawPdfTableHeader(doc, columns));
       const rowY = doc.y;
       const egreso = toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual);
       const estado = unidad.deletedAt ? 'Eliminada' : unidad.activa ? 'Activa' : 'Agotada';
       const values = [
         `#${unidad.id}`,
-        unidad.producto?.nombre ?? '-',
+        truncateText(unidad.producto?.nombre ?? '-', 34),
         estado,
-        unidad.producto?.tipoQueso?.nombre ?? '-',
+        truncateText(unidad.producto?.tipoQueso?.nombre ?? '-', 16),
         formatKgLabel(unidad.pesoInicial),
         formatKgLabel(unidad.pesoActual),
         formatKgLabel(egreso),
@@ -595,16 +696,24 @@ export class ReportesController {
         String(cortes.length),
       ];
 
-      doc.font('Helvetica').fontSize(8);
-      columns.forEach((column, index) => {
-        doc.text(values[index], column.x, rowY, { width: column.width, height: 24 });
+      if (index % 2 === 0) {
+        doc.save().rect(doc.page.margins.left, rowY - 3, doc.page.width - doc.page.margins.left - doc.page.margins.right, rowHeight - 4).fill('#f9fafb').restore();
+      }
+
+      doc.fillColor('#111827').font('Helvetica').fontSize(7.5);
+      columns.forEach((column, valueIndex) => {
+        doc.text(values[valueIndex], column.x, rowY + 2, {
+          width: column.width,
+          height: 14,
+          align: column.align ?? 'left',
+        });
       });
 
-      doc.font('Helvetica').fontSize(7).fillColor('#444444');
+      doc.font('Helvetica').fontSize(7).fillColor('#4b5563');
       let detailY = rowY + 18;
       detailLines.forEach((line) => {
-        doc.text(line, 75, detailY, { width: 700, height: 10 });
-        detailY += 11;
+        doc.text(line, 78, detailY, { width: 700, height: 10 });
+        detailY += 12;
       });
       doc.fillColor('#000000');
       doc.y = rowY + rowHeight;
@@ -844,23 +953,21 @@ export class ReportesController {
         (sum, unidad) => sum + toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual),
         0
       );
-      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape' });
+      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape', bufferPages: true });
       const bufferPromise = buildPdfBuffer(doc);
 
-      doc.font('Helvetica-Bold').fontSize(18).text('Inventario actual de quesos');
-      doc.moveDown(0.4);
-      doc.font('Helvetica').fontSize(10);
-      doc.text(`Generado: ${formatDateLabel(new Date())}`);
-      doc.text(`Unidades: ${unidades.length}`);
-      doc.text(`Peso actual total: ${formatKgLabel(totalPeso)}`);
-      doc.text(`Egreso acumulado: ${formatKgLabel(totalEgreso)}`);
-      if (filters.search) {
-        doc.text(`Busqueda: ${filters.search}`);
-      }
+      drawReportHeader(doc, 'Inventario actual de quesos', 'Las Tres Estrellas');
+      drawSummaryCards(doc, [
+        { label: 'Unidades', value: String(unidades.length) },
+        { label: 'Peso actual', value: formatKgLabel(totalPeso) },
+        { label: 'Egreso acumulado', value: formatKgLabel(totalEgreso) },
+        { label: 'Filtro', value: truncateText(filters.search || 'Todos', 24) },
+      ]);
 
       drawSectionTitle(doc, 'Detalle');
       this.drawInventarioTable(doc, unidades);
 
+      drawPdfFooter(doc);
       doc.end();
       const buffer = await bufferPromise;
       const fileSuffix = formatDateParam(new Date());
@@ -894,28 +1001,27 @@ export class ReportesController {
       const totalActivas = unidades.filter((unidad) => unidad.activa && !unidad.deletedAt).length;
       const totalAgotadas = unidades.filter((unidad) => !unidad.activa || unidad.deletedAt).length;
       const totalCortes = unidades.reduce((sum, unidad) => sum + (unidad.particiones?.length ?? 0), 0);
-      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape' });
+      const doc = new PDFDocument({ margin: 35, size: 'A4', layout: 'landscape', bufferPages: true });
       const bufferPromise = buildPdfBuffer(doc);
       const estadoLabel = filters.estado && filters.estado !== 'todos' ? filters.estado : 'todos';
       const periodoLabel = rangeResult?.value
         ? `${formatDateParam(rangeResult.value.fechaInicio)} a ${formatDateParam(rangeResult.value.fechaFin)}`
         : 'sin rango';
 
-      doc.font('Helvetica-Bold').fontSize(18).text('Historial de quesos');
-      doc.moveDown(0.4);
-      doc.font('Helvetica').fontSize(10);
-      doc.text(`Generado: ${formatDateLabel(new Date())}`);
-      doc.text(`Periodo: ${periodoLabel}`);
-      doc.text(`Estado: ${estadoLabel}`);
-      doc.text(`Unidades: ${unidades.length} | Activas: ${totalActivas} | Agotadas/eliminadas: ${totalAgotadas}`);
-      doc.text(`Peso inicial total: ${formatKgLabel(totalPeso)} | Egreso total: ${formatKgLabel(totalEgreso)} | Cortes: ${totalCortes}`);
-      if (filters.search) {
-        doc.text(`Busqueda: ${filters.search}`);
-      }
+      drawReportHeader(doc, 'Historial de quesos', `Periodo: ${periodoLabel} | Estado: ${estadoLabel}`);
+      drawSummaryCards(doc, [
+        { label: 'Unidades', value: String(unidades.length) },
+        { label: 'Activas', value: String(totalActivas) },
+        { label: 'Agotadas', value: String(totalAgotadas) },
+        { label: 'Peso inicial', value: formatKgLabel(totalPeso) },
+        { label: 'Egreso total', value: formatKgLabel(totalEgreso) },
+        { label: 'Cortes', value: String(totalCortes) },
+      ]);
 
       drawSectionTitle(doc, 'Detalle de unidades y cortes');
       this.drawHistorialTable(doc, unidades);
 
+      drawPdfFooter(doc);
       doc.end();
       const buffer = await bufferPromise;
       const fileSuffix = rangeResult?.value
