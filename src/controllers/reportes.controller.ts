@@ -112,7 +112,7 @@ const endOfDay = (date: Date) => {
 };
 
 const formatVenta = (row: RawVenta): DashboardVenta => ({
-  fecha: row.fecha,
+  fecha: formatDateParam(new Date(row.fecha)),
   producto: row.producto,
   motivo: row.motivo ?? null,
   totalPeso: toNumber(row.totalPeso),
