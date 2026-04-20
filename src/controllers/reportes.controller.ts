@@ -257,7 +257,7 @@ export class ReportesController {
       .addSelect('AVG(particion.peso)', 'promedioCorte')
       .groupBy('producto.id')
       .addGroupBy('producto.nombre')
-      .orderBy('totalVendido', 'DESC')
+      .orderBy('SUM(particion.peso)', 'DESC')
       .limit(limit);
 
     if (range) {
@@ -320,14 +320,23 @@ export class ReportesController {
       fechaFin: endOfDay(new Date()),
     };
 
+    const safe = async <T>(label: string, promise: Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await promise;
+      } catch (error) {
+        console.error(`Error al cargar bloque de dashboard (${label}):`, error);
+        return fallback;
+      }
+    };
+
     const [inventarioActual, inventarioValorizado, ventasHoy, ventasSemana, ventasMes, topProductos] =
       await Promise.all([
-        this.getInventarioActualRows(),
-        this.getInventarioValorizadoRows(),
-        this.getVentasPorPeriodo(hoyRange),
-        this.getVentasPorPeriodo(semanaRange),
-        this.getVentasPorPeriodo(mesRange),
-        this.getTopProductosRows(10, range),
+        safe('inventarioActual', this.getInventarioActualRows(), []),
+        safe('inventarioValorizado', this.getInventarioValorizadoRows(), []),
+        safe('ventasHoy', this.getVentasPorPeriodo(hoyRange), []),
+        safe('ventasSemana', this.getVentasPorPeriodo(semanaRange), []),
+        safe('ventasMes', this.getVentasPorPeriodo(mesRange), []),
+        safe('topProductos', this.getTopProductosRows(10, range), []),
       ]);
 
     const snapshot: DashboardSnapshot = {
@@ -354,7 +363,7 @@ export class ReportesController {
     };
 
     if (range) {
-      snapshot.ventas.personalizado = await this.getVentasPorPeriodo(range);
+      snapshot.ventas.personalizado = await safe('ventasPersonalizado', this.getVentasPorPeriodo(range), []);
     }
 
     return snapshot;
