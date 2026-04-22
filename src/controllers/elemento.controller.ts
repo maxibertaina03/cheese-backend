@@ -9,6 +9,22 @@ import { Motivo } from '../entities/Motivo';
 import { Usuario } from '../entities/Usuario';
 import { AuthRequest } from '../middlewares/auth';
 
+type ControllerErrorResult = {
+  error: {
+    status: number;
+    payload: { error: string };
+  };
+};
+
+type ElementoMovimientoResult =
+  | ControllerErrorResult
+  | {
+      message: string;
+      stockAnterior: number;
+      stockNuevo: number;
+      movimiento: MovimientoElemento;
+    };
+
 export class ElementoController {
 
   // GET /api/elementos - Listar todos los elementos
@@ -159,58 +175,75 @@ export class ElementoController {
   static async registrarIngreso(req: AuthRequest, res: Response) {
     try {
       const { cantidad, observaciones } = req.body;
-      const elementoRepo = AppDataSource.getRepository(Elemento);
-      const movimientoRepo = AppDataSource.getRepository(MovimientoElemento);
-      const usuarioRepo = AppDataSource.getRepository(Usuario);
+      const cantidadNum = Number(cantidad);
 
-      if (!cantidad || cantidad <= 0) {
+      if (!cantidadNum || cantidadNum <= 0) {
         return res.status(400).json({ 
           error: 'La cantidad debe ser mayor a 0' 
         });
       }
 
-      const elemento = await elementoRepo.findOne({
-        where: { id: Number(req.params.id) },
-      });
+      const result: ElementoMovimientoResult = await AppDataSource.transaction(
+        async (manager): Promise<ElementoMovimientoResult> => {
+          const elementoRepo = manager.getRepository(Elemento);
+          const movimientoRepo = manager.getRepository(MovimientoElemento);
+          const usuarioRepo = manager.getRepository(Usuario);
 
-      if (!elemento) {
-        return res.status(404).json({ error: 'Elemento no encontrado' });
+          const elemento = await elementoRepo.findOne({
+            where: { id: Number(req.params.id) },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (!elemento) {
+            return {
+              error: {
+                status: 404,
+                payload: { error: 'Elemento no encontrado' },
+              },
+            } satisfies ControllerErrorResult;
+          }
+
+          // Obtener usuario
+          let usuario = null;
+          if (req.user?.id) {
+            usuario = await usuarioRepo.findOneBy({ id: req.user.id });
+          }
+
+          const stockAnterior = Number(elemento.cantidadDisponible);
+          const stockNuevo = stockAnterior + cantidadNum;
+
+          // Actualizar elemento
+          elemento.cantidadDisponible = stockNuevo;
+          elemento.cantidadTotal = Number(elemento.cantidadTotal) + cantidadNum;
+          elemento.activo = true; // Reactivar si estaba inactivo
+          await elementoRepo.save(elemento);
+
+          // Registrar movimiento
+          const movimiento = movimientoRepo.create({
+            elemento,
+            tipo: 'ingreso',
+            cantidad: cantidadNum,
+            stockAnterior,
+            stockNuevo,
+            observaciones: observaciones || null,
+            creadoPor: usuario,
+          });
+          await movimientoRepo.save(movimiento);
+
+          return {
+            message: 'Ingreso registrado exitosamente',
+            stockAnterior,
+            stockNuevo,
+            movimiento,
+          };
+        }
+      );
+
+      if ('error' in result) {
+        return res.status(result.error.status).json(result.error.payload);
       }
 
-      // Obtener usuario
-      let usuario = null;
-      if (req.user?.id) {
-        usuario = await usuarioRepo.findOneBy({ id: req.user.id });
-      }
-
-      const cantidadNum = Number(cantidad);
-      const stockAnterior = elemento.cantidadDisponible;
-      const stockNuevo = stockAnterior + cantidadNum;
-
-      // Actualizar elemento
-      elemento.cantidadDisponible = stockNuevo;
-      elemento.cantidadTotal += cantidadNum;
-      elemento.activo = true; // Reactivar si estaba inactivo
-      await elementoRepo.save(elemento);
-
-      // Registrar movimiento
-      const movimiento = movimientoRepo.create({
-        elemento,
-        tipo: 'ingreso',
-        cantidad: cantidadNum,
-        stockAnterior,
-        stockNuevo,
-        observaciones: observaciones || null,
-        creadoPor: usuario,
-      });
-      await movimientoRepo.save(movimiento);
-
-      res.json({
-        message: 'Ingreso registrado exitosamente',
-        stockAnterior,
-        stockNuevo,
-        movimiento,
-      });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -220,76 +253,102 @@ export class ElementoController {
   static async registrarEgreso(req: AuthRequest, res: Response) {
     try {
       const { cantidad, motivoId, observaciones } = req.body;
-      const elementoRepo = AppDataSource.getRepository(Elemento);
-      const movimientoRepo = AppDataSource.getRepository(MovimientoElemento);
-      const motivoRepo = AppDataSource.getRepository(Motivo);
-      const usuarioRepo = AppDataSource.getRepository(Usuario);
+      const cantidadNum = Number(cantidad);
 
-      if (!cantidad || cantidad <= 0) {
+      if (!cantidadNum || cantidadNum <= 0) {
         return res.status(400).json({ 
           error: 'La cantidad debe ser mayor a 0' 
         });
       }
 
-      const elemento = await elementoRepo.findOne({
-        where: { id: Number(req.params.id) },
-      });
+      const result: ElementoMovimientoResult = await AppDataSource.transaction(
+        async (manager): Promise<ElementoMovimientoResult> => {
+          const elementoRepo = manager.getRepository(Elemento);
+          const movimientoRepo = manager.getRepository(MovimientoElemento);
+          const motivoRepo = manager.getRepository(Motivo);
+          const usuarioRepo = manager.getRepository(Usuario);
 
-      if (!elemento) {
-        return res.status(404).json({ error: 'Elemento no encontrado' });
-      }
+          const elemento = await elementoRepo.findOne({
+            where: { id: Number(req.params.id) },
+            lock: { mode: 'pessimistic_write' },
+          });
 
-      if (elemento.cantidadDisponible < cantidad) {
-        return res.status(400).json({ 
-          error: `Stock insuficiente. Disponible: ${elemento.cantidadDisponible}` 
-        });
-      }
+          if (!elemento) {
+            return {
+              error: {
+                status: 404,
+                payload: { error: 'Elemento no encontrado' },
+              },
+            } satisfies ControllerErrorResult;
+          }
 
-      // Verificar motivo si se proporciona
-      let motivo = null;
-      if (motivoId) {
-        motivo = await motivoRepo.findOneBy({ id: motivoId });
-        if (!motivo) {
-          return res.status(404).json({ error: 'Motivo no encontrado' });
+          const stockAnterior = Number(elemento.cantidadDisponible);
+
+          if (stockAnterior < cantidadNum) {
+            return {
+              error: {
+                status: 400,
+                payload: { error: `Stock insuficiente. Disponible: ${stockAnterior}` },
+              },
+            } satisfies ControllerErrorResult;
+          }
+
+          // Verificar motivo si se proporciona
+          let motivo = null;
+          if (motivoId) {
+            motivo = await motivoRepo.findOneBy({ id: motivoId });
+            if (!motivo) {
+              return {
+                error: {
+                  status: 404,
+                  payload: { error: 'Motivo no encontrado' },
+                },
+              } satisfies ControllerErrorResult;
+            }
+          }
+
+          // Obtener usuario
+          let usuario = null;
+          if (req.user?.id) {
+            usuario = await usuarioRepo.findOneBy({ id: req.user.id });
+          }
+
+          const stockNuevo = stockAnterior - cantidadNum;
+
+          // Actualizar elemento
+          elemento.cantidadDisponible = stockNuevo;
+          if (stockNuevo === 0) {
+            elemento.activo = false;
+          }
+          await elementoRepo.save(elemento);
+
+          // Registrar movimiento
+          const movimiento = movimientoRepo.create({
+            elemento,
+            tipo: 'egreso',
+            cantidad: cantidadNum,
+            stockAnterior,
+            stockNuevo,
+            motivo,
+            observaciones: observaciones || null,
+            creadoPor: usuario,
+          });
+          await movimientoRepo.save(movimiento);
+
+          return {
+            message: 'Egreso registrado exitosamente',
+            stockAnterior,
+            stockNuevo,
+            movimiento,
+          };
         }
+      );
+
+      if ('error' in result) {
+        return res.status(result.error.status).json(result.error.payload);
       }
 
-      // Obtener usuario
-      let usuario = null;
-      if (req.user?.id) {
-        usuario = await usuarioRepo.findOneBy({ id: req.user.id });
-      }
-
-      const cantidadNum = Number(cantidad);
-      const stockAnterior = elemento.cantidadDisponible;
-      const stockNuevo = stockAnterior - cantidadNum;
-
-      // Actualizar elemento
-      elemento.cantidadDisponible = stockNuevo;
-      if (stockNuevo === 0) {
-        elemento.activo = false;
-      }
-      await elementoRepo.save(elemento);
-
-      // Registrar movimiento
-      const movimiento = movimientoRepo.create({
-        elemento,
-        tipo: 'egreso',
-        cantidad: cantidadNum,
-        stockAnterior,
-        stockNuevo,
-        motivo,
-        observaciones: observaciones || null,
-        creadoPor: usuario,
-      });
-      await movimientoRepo.save(movimiento);
-
-      res.json({
-        message: 'Egreso registrado exitosamente',
-        stockAnterior,
-        stockNuevo,
-        movimiento,
-      });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
