@@ -7,6 +7,20 @@ import { Unidad } from '../entities/Unidad';
 import { Usuario } from '../entities/Usuario';
 import { AuthRequest } from '../middlewares/auth';
 
+type ControllerErrorResult = {
+  error: {
+    status: number;
+    payload: { error: string };
+  };
+};
+
+type AddParticionResult =
+  | ControllerErrorResult
+  | {
+      unidad: Unidad;
+      particion: Particion | null;
+    };
+
 export class UnidadController {
   static async create(req: AuthRequest, res: Response) {
     try {
@@ -207,65 +221,96 @@ export class UnidadController {
         return res.status(400).json({ error: 'El peso debe ser 0 o mayor' });
       }
 
-      const unidadRepo = AppDataSource.getRepository(Unidad);
-      const particionRepo = AppDataSource.getRepository(Particion);
-      const usuarioRepo = AppDataSource.getRepository(Usuario);
-      const motivoRepo = AppDataSource.getRepository(Motivo);
-      const unidad = await unidadRepo.findOneBy({ id: unidadId });
+      const result: AddParticionResult = await AppDataSource.transaction(async (manager): Promise<AddParticionResult> => {
+        const unidadRepo = manager.getRepository(Unidad);
+        const particionRepo = manager.getRepository(Particion);
+        const usuarioRepo = manager.getRepository(Usuario);
+        const motivoRepo = manager.getRepository(Motivo);
+        const unidad = await unidadRepo.findOne({
+          where: { id: unidadId },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-      if (!unidad || !unidad.activa) {
-        return res.status(404).json({ error: 'Unidad no encontrada o inactiva' });
-      }
-
-      let motivo = null;
-      if (motivoId) {
-        motivo = await motivoRepo.findOneBy({ id: motivoId });
-        if (!motivo) {
-          return res.status(404).json({ error: 'Motivo no encontrado' });
+        if (!unidad || !unidad.activa) {
+          return {
+            error: {
+              status: 404,
+              payload: { error: 'Unidad no encontrada o inactiva' },
+            },
+          } satisfies ControllerErrorResult;
         }
-      }
 
-      let usuarioCreador = null;
-      if (req.user?.id) {
-        usuarioCreador = await usuarioRepo.findOneBy({ id: req.user.id });
-      }
-
-      let pesoFinal = peso;
-
-      if (pesoFinal === 0) {
-        if (Number(unidad.pesoActual) === 0) {
-          return res.status(400).json({ error: 'La unidad ya esta agotada' });
+        let motivo = null;
+        if (motivoId) {
+          motivo = await motivoRepo.findOneBy({ id: motivoId });
+          if (!motivo) {
+            return {
+              error: {
+                status: 404,
+                payload: { error: 'Motivo no encontrado' },
+              },
+            } satisfies ControllerErrorResult;
+          }
         }
-        pesoFinal = Number(unidad.pesoActual);
-      }
 
-      if (Number(unidad.pesoActual) < pesoFinal) {
-        return res.status(400).json({ error: 'Peso insuficiente en la unidad' });
-      }
+        let usuarioCreador = null;
+        if (req.user?.id) {
+          usuarioCreador = await usuarioRepo.findOneBy({ id: req.user.id });
+        }
 
-      const particion = particionRepo.create({
-        unidad,
-        peso: pesoFinal,
-        observacionesCorte: observacionesCorte || null,
-        motivo,
-        creadoPor: usuarioCreador,
+        let pesoFinal = peso;
+
+        if (pesoFinal === 0) {
+          if (Number(unidad.pesoActual) === 0) {
+            return {
+              error: {
+                status: 400,
+                payload: { error: 'La unidad ya esta agotada' },
+              },
+            } satisfies ControllerErrorResult;
+          }
+          pesoFinal = Number(unidad.pesoActual);
+        }
+
+        if (Number(unidad.pesoActual) < pesoFinal) {
+          return {
+            error: {
+              status: 400,
+              payload: { error: 'Peso insuficiente en la unidad' },
+            },
+          } satisfies ControllerErrorResult;
+        }
+
+        const particion = particionRepo.create({
+          unidad,
+          peso: pesoFinal,
+          observacionesCorte: observacionesCorte || null,
+          motivo,
+          creadoPor: usuarioCreador,
+        });
+
+        unidad.pesoActual = Number(unidad.pesoActual) - pesoFinal;
+
+        if (unidad.pesoActual === 0) {
+          unidad.activa = false;
+        }
+
+        await particionRepo.save(particion);
+        await unidadRepo.save(unidad);
+
+        const particionCompleta = await particionRepo.findOne({
+          where: { id: particion.id },
+          relations: ['motivo', 'creadoPor'],
+        });
+
+        return { unidad, particion: particionCompleta };
       });
 
-      unidad.pesoActual = Number(unidad.pesoActual) - pesoFinal;
-
-      if (unidad.pesoActual === 0) {
-        unidad.activa = false;
+      if ('error' in result) {
+        return res.status(result.error.status).json(result.error.payload);
       }
 
-      await particionRepo.save(particion);
-      await unidadRepo.save(unidad);
-
-      const particionCompleta = await particionRepo.findOne({
-        where: { id: particion.id },
-        relations: ['motivo', 'creadoPor'],
-      });
-
-      res.json({ unidad, particion: particionCompleta });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
