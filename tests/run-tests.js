@@ -6,6 +6,7 @@ const suites = [
   ...require('./reportes.controller.test'),
   ...require('./reportes.routes.test'),
   ...require('./stock-elemento.controller.test'),
+  ...require('./stock-elemento.routes.test'),
   ...require('./unidad.routes.test'),
   ...require('./unidad.controller.test'),
 ];
