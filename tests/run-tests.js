@@ -2,6 +2,7 @@ const suites = [
   ...require('./auth.config.test'),
   ...require('./auth.routes.test'),
   ...require('./elemento.controller.test'),
+  ...require('./elemento.routes.test'),
   ...require('./reportes.controller.test'),
   ...require('./reportes.routes.test'),
   ...require('./stock-elemento.controller.test'),
