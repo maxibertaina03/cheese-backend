@@ -2,7 +2,7 @@
 // ARCHIVO: src/app.ts (ACTUALIZADO)
 // ============================================
 import express from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import productoRoutes from './routes/producto.routes';
 import unidadRoutes from './routes/unidad.routes';
 import tipoQuesoRoutes from './routes/tipoQueso.routes';
@@ -25,13 +25,18 @@ const configuredOrigins = (process.env.CORS_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
+const allowLocalOrigins = process.env.NODE_ENV !== 'production';
 
 const isAllowedOrigin = (origin: string | undefined) => {
   if (!origin) {
     return true;
   }
 
-  if (localOrigins.includes(origin) || configuredOrigins.includes(origin)) {
+  if (configuredOrigins.includes(origin)) {
+    return true;
+  }
+
+  if (allowLocalOrigins && localOrigins.includes(origin)) {
     return true;
   }
 
@@ -39,16 +44,11 @@ const isAllowedOrigin = (origin: string | undefined) => {
     return true;
   }
 
-  if (!configuredOrigins.length && origin.includes('vercel.app')) {
-    logger.warn('CORS_ORIGINS no configurado. Se acepta origen Vercel por compatibilidad temporal.');
-    return true;
-  }
-
   return false;
 };
 
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: any) {
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
     if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {

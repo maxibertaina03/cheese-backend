@@ -7,9 +7,24 @@ export interface AuthTokenPayload {
   username?: string;
 }
 
-const fallbackSecret = 'tu_secreto_temporal';
+const developmentFallbackSecret = 'tu_secreto_temporal';
+const insecureSecretPlaceholders = new Set([
+  '',
+  'change_me',
+  developmentFallbackSecret,
+]);
 
-export const JWT_SECRET = process.env.JWT_SECRET || fallbackSecret;
+const resolveJwtSecret = () => {
+  const configuredSecret = process.env.JWT_SECRET?.trim() ?? '';
+
+  if (process.env.NODE_ENV === 'production' && insecureSecretPlaceholders.has(configuredSecret)) {
+    throw new Error('JWT_SECRET debe configurarse con un valor seguro en produccion');
+  }
+
+  return configuredSecret || developmentFallbackSecret;
+};
+
+export const JWT_SECRET = resolveJwtSecret();
 
 export const signAuthToken = (payload: AuthTokenPayload) =>
   jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
