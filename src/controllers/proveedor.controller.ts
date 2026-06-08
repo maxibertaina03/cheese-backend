@@ -1,0 +1,129 @@
+import { Response } from 'express';
+import { AppDataSource } from '../config/database';
+import { Indumentaria } from '../entities/Indumentaria';
+import { Proveedor } from '../entities/Proveedor';
+import { Usuario } from '../entities/Usuario';
+import { AuthRequest } from '../middlewares/auth';
+
+export class ProveedorController {
+  static async getAll(_req: AuthRequest, res: Response) {
+    try {
+      const proveedorRepo = AppDataSource.getRepository(Proveedor);
+      const proveedores = await proveedorRepo.find({
+        where: { activo: true },
+        order: { nombre: 'ASC' },
+      });
+      res.json(proveedores);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async create(req: AuthRequest, res: Response) {
+    try {
+      const { nombre, contacto, telefono, email, direccion, observaciones } = req.body;
+
+      if (!nombre) {
+        return res.status(400).json({ error: 'El nombre es obligatorio' });
+      }
+
+      const proveedorRepo = AppDataSource.getRepository(Proveedor);
+
+      const existente = await proveedorRepo.findOneBy({ nombre });
+      if (existente) {
+        return res.status(400).json({ error: 'Ya existe un proveedor con este nombre' });
+      }
+
+      let usuarioCreador: Usuario | null = null;
+      if (req.user?.id) {
+        usuarioCreador = await AppDataSource.getRepository(Usuario).findOneBy({ id: req.user.id });
+      }
+
+      const proveedor = proveedorRepo.create({
+        nombre,
+        contacto: contacto ?? null,
+        telefono: telefono ?? null,
+        email: email ?? null,
+        direccion: direccion ?? null,
+        observaciones: observaciones ?? null,
+        creadoPor: usuarioCreador,
+      });
+
+      await proveedorRepo.save(proveedor);
+      res.status(201).json(proveedor);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async update(req: AuthRequest, res: Response) {
+    try {
+      const { nombre, contacto, telefono, email, direccion, observaciones, activo } = req.body;
+      const proveedorRepo = AppDataSource.getRepository(Proveedor);
+
+      const proveedor = await proveedorRepo.findOneBy({ id: Number(req.params.id) });
+      if (!proveedor) {
+        return res.status(404).json({ error: 'Proveedor no encontrado' });
+      }
+
+      if (nombre && nombre !== proveedor.nombre) {
+        const existente = await proveedorRepo.findOneBy({ nombre });
+        if (existente) {
+          return res.status(400).json({ error: 'Ya existe un proveedor con este nombre' });
+        }
+        proveedor.nombre = nombre;
+      }
+
+      if (contacto !== undefined) proveedor.contacto = contacto;
+      if (telefono !== undefined) proveedor.telefono = telefono;
+      if (email !== undefined) proveedor.email = email;
+      if (direccion !== undefined) proveedor.direccion = direccion;
+      if (observaciones !== undefined) proveedor.observaciones = observaciones;
+      if (activo !== undefined) proveedor.activo = activo;
+
+      if (req.user?.id) {
+        proveedor.modificadoPor = await AppDataSource.getRepository(Usuario).findOneBy({
+          id: req.user.id,
+        });
+      }
+
+      await proveedorRepo.save(proveedor);
+      res.json(proveedor);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async delete(req: AuthRequest, res: Response) {
+    try {
+      const proveedorRepo = AppDataSource.getRepository(Proveedor);
+      const indumentariaRepo = AppDataSource.getRepository(Indumentaria);
+
+      const proveedor = await proveedorRepo.findOneBy({ id: Number(req.params.id) });
+      if (!proveedor) {
+        return res.status(404).json({ error: 'Proveedor no encontrado' });
+      }
+
+      const asociadas = await indumentariaRepo.count({
+        where: { proveedor: { id: proveedor.id }, activo: true },
+      });
+      if (asociadas > 0) {
+        return res.status(400).json({
+          error: 'No se puede eliminar un proveedor con indumentaria asociada',
+        });
+      }
+
+      proveedor.activo = false;
+      if (req.user?.id) {
+        proveedor.eliminadoPor = await AppDataSource.getRepository(Usuario).findOneBy({
+          id: req.user.id,
+        });
+      }
+      await proveedorRepo.save(proveedor);
+
+      res.json({ message: 'Proveedor desactivado exitosamente' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+}

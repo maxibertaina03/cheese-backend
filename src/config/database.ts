@@ -2,11 +2,14 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { Elemento } from '../entities/Elemento';
+import { Indumentaria } from '../entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
 import { MovimientoElemento } from '../entities/MovimientoElemento';
+import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
+import { Proveedor } from '../entities/Proveedor';
 import { StockElemento } from '../entities/StockElemento';
 import { TipoElemento } from '../entities/TipoElemento';
 import { TipoQueso } from '../entities/TipoQueso';
@@ -36,6 +39,9 @@ export const AppDataSource = new DataSource({
     TipoElemento,
     StockElemento,
     MovimientoStock,
+    Proveedor,
+    Indumentaria,
+    MovimientoIndumentaria,
   ],
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });

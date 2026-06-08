@@ -15,6 +15,8 @@ import alertasRoutes from './routes/alertas.routes';
 import elementoRoutes from './routes/elemento.routes'; // 🆕
 import stockElementoRoutes from './routes/stock-elemento.routes'; // 🆕
 import tipoElementoRoutes from './routes/tipo-elemento.routes'; // 🆕
+import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
+import proveedorRoutes from './routes/proveedor.routes'; // 🆕
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
@@ -77,6 +79,8 @@ app.use('/api/alertas', alertasRoutes);
 app.use('/api/elementos', elementoRoutes); // 🆕
 app.use('/api/stock-elementos', stockElementoRoutes); // 🆕
 app.use('/api/tipos-elemento', tipoElementoRoutes); // 🆕
+app.use('/api/indumentaria', indumentariaRoutes); // 🆕
+app.use('/api/proveedores', proveedorRoutes); // 🆕
 
 app.use(errorHandler);
 

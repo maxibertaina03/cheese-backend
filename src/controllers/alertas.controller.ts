@@ -2,6 +2,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { AppDataSource } from '../config/database';
+import { Indumentaria } from '../entities/Indumentaria';
 import { Unidad } from '../entities/Unidad';
 
 interface Alerta {
@@ -63,6 +64,37 @@ export class AlertasController {
             timestamp: new Date()
           });
         }
+      });
+
+      // Stock bajo de indumentaria
+      const indumentariaRepo = AppDataSource.getRepository(Indumentaria);
+      const indumentariaBaja = await indumentariaRepo
+        .createQueryBuilder('prenda')
+        .where('prenda.activo = :activo', { activo: true })
+        .andWhere('prenda.stockMinimo > 0')
+        .andWhere('prenda.cantidadDisponible <= prenda.stockMinimo')
+        .getMany();
+
+      indumentariaBaja.forEach((prenda) => {
+        const disponible = Number(prenda.cantidadDisponible);
+        const detalle = [prenda.nombre, prenda.talle ? `Talle ${prenda.talle}` : null]
+          .filter(Boolean)
+          .join(' - ');
+
+        alertas.push({
+          tipo: 'stock_bajo',
+          prioridad: disponible === 0 ? 'alta' : 'media',
+          mensaje: `Stock bajo de indumentaria: ${detalle}`,
+          detalles: {
+            prenda: prenda.nombre,
+            talle: prenda.talle,
+            categoria: prenda.categoria,
+            disponible,
+            stockMinimo: Number(prenda.stockMinimo),
+            ubicacion: prenda.ubicacion,
+          },
+          timestamp: new Date(),
+        });
       });
 
       // Inactividad
