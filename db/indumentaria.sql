@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS proveedores (
     email           varchar(150),
     direccion       varchar(250),
     observaciones   text,
+    
     activo          boolean NOT NULL DEFAULT true,
     "creadoPorId"    integer REFERENCES usuario(id),
     "modificadoPorId" integer REFERENCES usuario(id),
@@ -72,7 +73,7 @@ CREATE TABLE IF NOT EXISTS movimientos_indumentaria (
     "proveedorId"          integer REFERENCES proveedores(id),
     "documentoReferencia"  varchar(200),
     observaciones          text,
-    "fechaMovimiento"      date NOT NULL,
+    "fechaMovimiento"      TIMESTAMP NOT NULL,
     "usuarioId"            integer REFERENCES usuario(id),
     "createdAt"            TIMESTAMP NOT NULL DEFAULT now()
 );
