@@ -43,7 +43,7 @@ export class MovimientoIndumentaria {
   @Column({ type: 'text', nullable: true })
   observaciones!: string | null;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp' })
   fechaMovimiento!: Date;
 
   @ManyToOne(() => Usuario, { nullable: true })

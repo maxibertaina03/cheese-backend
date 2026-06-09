@@ -81,6 +81,12 @@ export class IndumentariaController {
         });
       }
 
+      if (!proveedorId) {
+        return res.status(400).json({
+          error: 'El proveedor es obligatorio',
+        });
+      }
+
       const result: CreateResult = await AppDataSource.transaction(
         async (manager): Promise<CreateResult> => {
           const repo = manager.getRepository(Indumentaria);
@@ -164,6 +170,10 @@ export class IndumentariaController {
         return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' });
       }
 
+      if (!proveedorId) {
+        return res.status(400).json({ error: 'El proveedor es obligatorio' });
+      }
+
       const result: MovementResult = await AppDataSource.transaction(
         async (manager): Promise<MovementResult> => {
           const repo = manager.getRepository(Indumentaria);
@@ -171,10 +181,11 @@ export class IndumentariaController {
           const proveedorRepo = manager.getRepository(Proveedor);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const prenda = await repo.findOne({
-            where: { id: Number(req.params.id) },
-            lock: { mode: 'pessimistic_write' },
-          });
+          const prenda = await repo
+            .createQueryBuilder('indumentaria')
+            .setLock('pessimistic_write')
+            .where('indumentaria.id = :id', { id: Number(req.params.id) })
+            .getOne();
 
           if (!prenda) {
             return {
@@ -262,10 +273,11 @@ export class IndumentariaController {
           const movimientoRepo = manager.getRepository(MovimientoIndumentaria);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const prenda = await repo.findOne({
-            where: { id: Number(req.params.id) },
-            lock: { mode: 'pessimistic_write' },
-          });
+          const prenda = await repo
+            .createQueryBuilder('indumentaria')
+            .setLock('pessimistic_write')
+            .where('indumentaria.id = :id', { id: Number(req.params.id) })
+            .getOne();
 
           if (!prenda) {
             return {
@@ -356,10 +368,11 @@ export class IndumentariaController {
           const movimientoRepo = manager.getRepository(MovimientoIndumentaria);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const prenda = await repo.findOne({
-            where: { id: Number(req.params.id) },
-            lock: { mode: 'pessimistic_write' },
-          });
+          const prenda = await repo
+            .createQueryBuilder('indumentaria')
+            .setLock('pessimistic_write')
+            .where('indumentaria.id = :id', { id: Number(req.params.id) })
+            .getOne();
 
           if (!prenda) {
             return {

@@ -32,4 +32,24 @@ router.get(
   ReportesController.exportHistorialPdf.bind(ReportesController)
 );
 
+// Indumentaria (prendas)
+router.get(
+  '/indumentaria/dashboard',
+  auth,
+  validateDto(DashboardQueryDto, 'query'),
+  ReportesController.getIndumentariaDashboard.bind(ReportesController)
+);
+router.get(
+  '/indumentaria/export/excel',
+  auth,
+  validateDto(ExportReportQueryDto, 'query'),
+  ReportesController.exportIndumentariaExcel.bind(ReportesController)
+);
+router.get(
+  '/indumentaria/export/pdf',
+  auth,
+  validateDto(ExportReportQueryDto, 'query'),
+  ReportesController.exportIndumentariaPdf.bind(ReportesController)
+);
+
 export default router;

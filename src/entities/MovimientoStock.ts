@@ -43,7 +43,7 @@ export class MovimientoStock {
   @Column({ type: 'text', nullable: true })
   observaciones!: string | null;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp' })
   fechaMovimiento!: Date;
 
   // Quién registró

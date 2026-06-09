@@ -158,11 +158,12 @@ export class StockElementoController {
           const movimientoRepo = manager.getRepository(MovimientoStock);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const stockElemento = await stockRepo.findOne({
-            where: { id: Number(req.params.id) },
-            relations: ['tipo'],
-            lock: { mode: 'pessimistic_write' },
-          });
+          const stockElemento = await stockRepo
+            .createQueryBuilder('stock')
+            .innerJoinAndSelect('stock.tipo', 'tipo')
+            .where('stock.id = :id', { id: Number(req.params.id) })
+            .setLock('pessimistic_write', undefined, ['stock'])
+            .getOne();
 
           if (!stockElemento) {
             return {
@@ -250,11 +251,12 @@ export class StockElementoController {
           const motivoRepo = manager.getRepository(Motivo);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const stockElemento = await stockRepo.findOne({
-            where: { id: Number(req.params.id) },
-            relations: ['tipo'],
-            lock: { mode: 'pessimistic_write' },
-          });
+          const stockElemento = await stockRepo
+            .createQueryBuilder('stock')
+            .innerJoinAndSelect('stock.tipo', 'tipo')
+            .where('stock.id = :id', { id: Number(req.params.id) })
+            .setLock('pessimistic_write', undefined, ['stock'])
+            .getOne();
 
           if (!stockElemento) {
             return {
@@ -442,11 +444,12 @@ export class StockElementoController {
           const movimientoRepo = manager.getRepository(MovimientoStock);
           const usuarioRepo = manager.getRepository(Usuario);
 
-          const stockElemento = await stockRepo.findOne({
-            where: { id: Number(req.params.id) },
-            relations: ['tipo'],
-            lock: { mode: 'pessimistic_write' },
-          });
+          const stockElemento = await stockRepo
+            .createQueryBuilder('stock')
+            .innerJoinAndSelect('stock.tipo', 'tipo')
+            .where('stock.id = :id', { id: Number(req.params.id) })
+            .setLock('pessimistic_write', undefined, ['stock'])
+            .getOne();
 
           if (!stockElemento) {
             return {
