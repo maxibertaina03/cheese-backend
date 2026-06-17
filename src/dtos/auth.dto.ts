@@ -1,4 +1,6 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength, Matches } from 'class-validator';
+import { IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength, Matches } from 'class-validator';
+
+const MODULOS_VALIDOS = ['quesos', 'elementos', 'indumentaria', 'dashboard', 'historial'];
 
 export class RegisterDto {
   @IsString()
@@ -17,6 +19,11 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(['admin', 'usuario'])
   rol?: 'admin' | 'usuario';
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(MODULOS_VALIDOS, { each: true })
+  permisos?: string[];
 }
 
 export class LoginDto {
