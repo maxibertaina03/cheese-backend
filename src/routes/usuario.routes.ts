@@ -13,6 +13,7 @@ declare global {
         id: number;
         rol: string;
         username?: string;
+        permisos?: string[];
       };
     }
   }
@@ -25,7 +26,7 @@ router.get('/', auth, requireRole('admin'), async (req: Request, res: Response) 
   try {
     const usuarioRepo = AppDataSource.getRepository(Usuario);
     const usuarios = await usuarioRepo.find({
-      select: ['id', 'username', 'rol', 'createdAt'] // Excluir password
+      select: ['id', 'username', 'rol', 'permisos', 'createdAt'] // Excluir password
     });
     res.json(usuarios);
   } catch (err: any) {
@@ -38,28 +39,34 @@ router.put('/:id', auth, requireRole('admin'), async (req: Request, res: Respons
   try {
     // ✅ FIX: Asegurar que id sea string
     const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { rol } = req.body;
-    
+    const { rol, permisos } = req.body;
+
     if (!rol || (rol !== 'admin' && rol !== 'usuario')) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
-    
+
     const usuarioRepo = AppDataSource.getRepository(Usuario);
     const usuario = await usuarioRepo.findOneBy({ id: parseInt(idParam) });
-    
+
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
-    
+
     // ✅ FIX: Verificar que req.user existe y usar tipado correcto
     if (req.user && usuario.id === req.user.id) {
       return res.status(403).json({ error: 'No puedes cambiar tu propio rol' });
     }
-    
+
     usuario.rol = rol;
+    // Los admin tienen acceso a todo, por lo que no guardamos secciones para ellos.
+    if (Array.isArray(permisos)) {
+      usuario.permisos = rol === 'admin' ? [] : permisos;
+    } else if (rol === 'admin') {
+      usuario.permisos = [];
+    }
     await usuarioRepo.save(usuario);
-    
-    res.json({ message: 'Usuario actualizado', usuario: { id: usuario.id, username: usuario.username, rol: usuario.rol } });
+
+    res.json({ message: 'Usuario actualizado', usuario: { id: usuario.id, username: usuario.username, rol: usuario.rol, permisos: usuario.permisos } });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

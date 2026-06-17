@@ -6,7 +6,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Unidad } from '../entities/Unidad';
 import { UnidadController } from '../controllers/unidad.controller';
-import { auth, requireRole } from '../middlewares/auth';
+import { auth, requirePermiso } from '../middlewares/auth';
 import {
   AddParticionDto,
   CreateUnidadDto,
@@ -47,10 +47,10 @@ router.get('/historial', auth, getHistorial);
 // Rutas principales
 router.get('/', auth, UnidadController.getAll);
 router.get('/:id', auth, validateDto(UnidadIdParamDto, 'params'), UnidadController.getOne);
-router.post('/', auth, requireRole('admin'), validateDto(CreateUnidadDto), UnidadController.create);
-router.put('/:id', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), validateDto(UpdateUnidadDto), UnidadController.update);
-router.delete('/:id', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), UnidadController.delete);
-router.delete('/:id/hard', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), UnidadController.hardDelete);
-router.post('/:id/particiones', auth, requireRole('admin'), validateDto(UnidadIdParamDto, 'params'), validateDto(AddParticionDto), UnidadController.addParticiones);
+router.post('/', auth, requirePermiso('quesos'), validateDto(CreateUnidadDto), UnidadController.create);
+router.put('/:id', auth, requirePermiso('quesos'), validateDto(UnidadIdParamDto, 'params'), validateDto(UpdateUnidadDto), UnidadController.update);
+router.delete('/:id', auth, requirePermiso('quesos'), validateDto(UnidadIdParamDto, 'params'), UnidadController.delete);
+router.delete('/:id/hard', auth, requirePermiso('quesos'), validateDto(UnidadIdParamDto, 'params'), UnidadController.hardDelete);
+router.post('/:id/particiones', auth, requirePermiso('quesos'), validateDto(UnidadIdParamDto, 'params'), validateDto(AddParticionDto), UnidadController.addParticiones);
 
 export default router;

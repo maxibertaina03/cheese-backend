@@ -5,19 +5,19 @@ import {
   IdParamDto,
   UpdateProveedorDto,
 } from '../dtos/proveedor.dto';
-import { auth, requireRole } from '../middlewares/auth';
+import { auth, requirePermiso } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validation.middleware';
 
 const router = Router();
 
 router.get('/', auth, ProveedorController.getAll);
 
-router.post('/', auth, requireRole('admin'), validateDto(CreateProveedorDto), ProveedorController.create);
+router.post('/', auth, requirePermiso('indumentaria'), validateDto(CreateProveedorDto), ProveedorController.create);
 
 router.put(
   '/:id',
   auth,
-  requireRole('admin'),
+  requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   validateDto(UpdateProveedorDto),
   ProveedorController.update
@@ -26,7 +26,7 @@ router.put(
 router.delete(
   '/:id',
   auth,
-  requireRole('admin'),
+  requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   ProveedorController.delete
 );

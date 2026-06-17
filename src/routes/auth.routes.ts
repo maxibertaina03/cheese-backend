@@ -11,10 +11,12 @@ const router = Router();
 
 router.post('/register', validateDto(RegisterDto), async (req: Request, res: Response) => {
   try {
-    const { username, password, rol = 'usuario' } = req.body;
+    const { username, password, rol = 'usuario', permisos = [] } = req.body;
     const actor = getOptionalAuthUser(req);
     const requestedRole = rol === 'admin' ? 'admin' : 'usuario';
     const finalRole = actor?.rol === 'admin' ? requestedRole : 'usuario';
+    // Solo un admin puede asignar permisos por seccion; de lo contrario, ninguno.
+    const finalPermisos = actor?.rol === 'admin' && Array.isArray(permisos) ? permisos : [];
 
     if (!username || !password) {
       return res.status(400).json({
@@ -64,6 +66,7 @@ router.post('/register', validateDto(RegisterDto), async (req: Request, res: Res
       username,
       password: hashed,
       rol: finalRole,
+      permisos: finalPermisos,
     });
 
     await usuarioRepo.save(nuevo);
@@ -76,6 +79,7 @@ router.post('/register', validateDto(RegisterDto), async (req: Request, res: Res
         id: nuevo.id,
         username: nuevo.username,
         rol: nuevo.rol,
+        permisos: nuevo.permisos,
         createdAt: nuevo.createdAt,
       },
     });
@@ -130,6 +134,7 @@ router.post('/login', validateDto(LoginDto), async (req: Request, res: Response)
       id: user.id,
       rol: user.rol,
       username: user.username,
+      permisos: user.permisos ?? [],
     });
 
     res.json({
@@ -139,6 +144,7 @@ router.post('/login', validateDto(LoginDto), async (req: Request, res: Response)
         id: user.id,
         username: user.username,
         rol: user.rol,
+        permisos: user.permisos ?? [],
       },
     });
   } catch (err: any) {
@@ -168,6 +174,7 @@ router.get('/verify', async (req: Request, res: Response) => {
           id: decoded.id,
           rol: decoded.rol,
           username: decoded.username,
+          permisos: decoded.permisos ?? [],
         },
       });
     } catch {

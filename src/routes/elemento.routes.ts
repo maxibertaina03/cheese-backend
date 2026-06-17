@@ -6,7 +6,7 @@ import {
   MovimientoElementoDto,
   UpdateElementoDto,
 } from '../dtos/elemento.dto';
-import { auth, requireRole } from '../middlewares/auth';
+import { auth, requirePermiso } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validation.middleware';
 
 const router = Router();
@@ -20,11 +20,11 @@ router.get(
   ElementoController.getMovimientos
 );
 
-router.post('/', auth, requireRole('admin'), validateDto(CreateElementoDto), ElementoController.create);
+router.post('/', auth, requirePermiso('elementos'), validateDto(CreateElementoDto), ElementoController.create);
 router.put(
   '/:id',
   auth,
-  requireRole('admin'),
+  requirePermiso('elementos'),
   validateDto(ElementoIdParamDto, 'params'),
   validateDto(UpdateElementoDto),
   ElementoController.update
@@ -32,7 +32,7 @@ router.put(
 router.post(
   '/:id/ingreso',
   auth,
-  requireRole('admin'),
+  requirePermiso('elementos'),
   validateDto(ElementoIdParamDto, 'params'),
   validateDto(MovimientoElementoDto),
   ElementoController.registrarIngreso
@@ -40,7 +40,7 @@ router.post(
 router.post(
   '/:id/egreso',
   auth,
-  requireRole('admin'),
+  requirePermiso('elementos'),
   validateDto(ElementoIdParamDto, 'params'),
   validateDto(MovimientoElementoDto),
   ElementoController.registrarEgreso
@@ -48,7 +48,7 @@ router.post(
 router.delete(
   '/:id',
   auth,
-  requireRole('admin'),
+  requirePermiso('elementos'),
   validateDto(ElementoIdParamDto, 'params'),
   ElementoController.delete
 );

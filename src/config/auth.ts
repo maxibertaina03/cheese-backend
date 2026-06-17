@@ -5,6 +5,7 @@ export interface AuthTokenPayload {
   id: number;
   rol: 'admin' | 'usuario';
   username?: string;
+  permisos?: string[];
 }
 
 const developmentFallbackSecret = 'tu_secreto_temporal';

@@ -9,6 +9,7 @@ import winston from 'winston';
           id: number;
           rol: string;
           username?: string; // Agregar esto
+          permisos?: string[];
         };
       }
     }
