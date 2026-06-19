@@ -3,6 +3,8 @@
 // ============================================
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import productoRoutes from './routes/producto.routes';
 import unidadRoutes from './routes/unidad.routes';
 import tipoQuesoRoutes from './routes/tipoQueso.routes';
@@ -20,6 +22,12 @@ import proveedorRoutes from './routes/proveedor.routes'; // 🆕
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
+
+// En producción (Render) la app corre detrás de un proxy; confiar en el
+// primer proxy permite que el rate-limit identifique la IP real del cliente.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 const localOrigins = ['http://localhost:3000', 'http://localhost:3001'];
 const configuredOrigins = (process.env.CORS_ORIGINS || '')
@@ -62,11 +70,42 @@ const corsOptions: CorsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(requestLogger);
 
+// En producción, evita filtrar detalles internos (mensajes de la DB, stack, etc.)
+// al cliente: cualquier respuesta 5xx se loguea completa y se reemplaza por un
+// mensaje genérico. En desarrollo se conserva el detalle para poder debuggear.
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const originalJson = res.json.bind(res);
+    res.json = (body: any) => {
+      if (res.statusCode >= 500) {
+        logger.error('Respuesta 5xx', { path: req.path, method: req.method, body });
+        return originalJson({ error: 'Error interno del servidor' });
+      }
+      return originalJson(body);
+    };
+    next();
+  });
+}
+
+// Limita intentos de login/registro para mitigar fuerza bruta.
+// 20 intentos por IP cada 15 minutos; solo cuentan los requests fallidos.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Demasiados intentos. Espera unos minutos e intenta de nuevo.' },
+});
+
 // Rutas
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/tipos-queso', tipoQuesoRoutes);
 app.use('/api/productos', productoRoutes);
