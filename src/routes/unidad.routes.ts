@@ -44,6 +44,9 @@ const getHistorial = async (req: Request, res: Response) => {
 // ⚠️ IMPORTANTE: La ruta /historial debe ir ANTES de /:id
 router.get('/historial', auth, getHistorial);
 
+// ⚠️ También debe ir ANTES de /:id para no ser capturada como un id
+router.get('/stock-al-corte', auth, UnidadController.getStockAlCorte);
+
 // Rutas principales
 router.get('/', auth, UnidadController.getAll);
 router.get('/:id', auth, validateDto(UnidadIdParamDto, 'params'), UnidadController.getOne);

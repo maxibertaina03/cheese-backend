@@ -21,6 +21,16 @@ type AddParticionResult =
       particion: Particion | null;
     };
 
+// Calcula el inicio (00:00) del lunes más reciente, en horario local del servidor.
+// Se usa solo como fallback: normalmente el frontend envía la fecha de corte ya
+// calculada en la zona horaria del usuario.
+const getUltimoLunes = (): Date => {
+  const now = new Date();
+  const day = now.getDay(); // 0 = domingo, 1 = lunes, ...
+  const diasDesdeLunes = (day + 6) % 7;
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasDesdeLunes, 0, 0, 0, 0);
+};
+
 export class UnidadController {
   static async create(req: AuthRequest, res: Response) {
     try {
@@ -90,6 +100,86 @@ export class UnidadController {
       });
 
       res.json(unidades);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Reconstruye el stock de quesos que existía en una fecha de corte (por defecto,
+   * el lunes más reciente). Para cada unidad calcula el peso que tenía en esa fecha
+   * (peso inicial menos los cortes hechos hasta el corte) y la cuenta como "en stock"
+   * solo si en ese momento todavía existía, no estaba dada de baja y tenía peso > 0.
+   * El resultado se agrupa por tipo de queso.
+   */
+  static async getStockAlCorte(req: AuthRequest, res: Response) {
+    try {
+      const fechaParam = typeof req.query.fecha === 'string' ? req.query.fecha : undefined;
+      const corte = fechaParam ? new Date(fechaParam) : getUltimoLunes();
+
+      if (Number.isNaN(corte.getTime())) {
+        return res.status(400).json({ error: 'Fecha de corte inválida' });
+      }
+
+      const unidadRepo = AppDataSource.getRepository(Unidad);
+      const unidades = await unidadRepo.find({
+        relations: ['producto', 'producto.tipoQueso', 'particiones'],
+        withDeleted: true,
+      });
+
+      const grupos = new Map<
+        number,
+        { tipoQuesoId: number; tipoQueso: string; cantidad: number; pesoTotal: number }
+      >();
+
+      for (const unidad of unidades) {
+        // Aún no existía en la fecha de corte.
+        if (new Date(unidad.createdAt) > corte) {
+          continue;
+        }
+
+        // Ya estaba dada de baja antes (o en) la fecha de corte.
+        if (unidad.deletedAt && new Date(unidad.deletedAt) <= corte) {
+          continue;
+        }
+
+        // Peso consumido por cortes realizados hasta la fecha de corte.
+        const consumido = (unidad.particiones || []).reduce((acc, particion) => {
+          return new Date(particion.createdAt) <= corte ? acc + Number(particion.peso) : acc;
+        }, 0);
+
+        const pesoEnCorte = Number(unidad.pesoInicial) - consumido;
+
+        // En esa fecha ya estaba agotada (sin peso disponible).
+        if (pesoEnCorte <= 0.0001) {
+          continue;
+        }
+
+        const tipo = unidad.producto?.tipoQueso;
+        if (!tipo) {
+          continue;
+        }
+
+        const grupo = grupos.get(tipo.id) || {
+          tipoQuesoId: tipo.id,
+          tipoQueso: tipo.nombre,
+          cantidad: 0,
+          pesoTotal: 0,
+        };
+        grupo.cantidad += 1;
+        grupo.pesoTotal += pesoEnCorte;
+        grupos.set(tipo.id, grupo);
+      }
+
+      const items = Array.from(grupos.values())
+        .map((grupo) => ({ ...grupo, pesoTotal: Math.round(grupo.pesoTotal * 100) / 100 }))
+        .sort((a, b) => a.tipoQueso.localeCompare(b.tipoQueso, 'es'));
+
+      res.json({
+        fechaCorte: corte.toISOString(),
+        totalUnidades: items.reduce((acc, item) => acc + item.cantidad, 0),
+        items,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
