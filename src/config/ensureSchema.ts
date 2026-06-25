@@ -51,6 +51,49 @@ const STATEMENTS: string[] = [
     "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
     "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
   )`,
+
+  // --- Fase 2: notas de pedido ---
+  // Fecha de venta del queso (cuando se vende queda activa=false + fechaVenta)
+  'ALTER TABLE "unidades" ADD COLUMN IF NOT EXISTS "fechaVenta" timestamp',
+
+  // Secuencia de numeración por tipo de comprobante (1=pedido, 2=recibo, 3=crédito)
+  `CREATE TABLE IF NOT EXISTS "secuencias_comprobante" (
+    "tipo" integer PRIMARY KEY,
+    "prefijo" varchar(10) NOT NULL DEFAULT '1',
+    "ultimoNumero" integer NOT NULL DEFAULT 0
+  )`,
+  `INSERT INTO "secuencias_comprobante" ("tipo","prefijo","ultimoNumero")
+    VALUES (1,'1',0) ON CONFLICT ("tipo") DO NOTHING`,
+
+  `CREATE TABLE IF NOT EXISTS "notas_pedido" (
+    "id" SERIAL PRIMARY KEY,
+    "serie" varchar(10) NOT NULL DEFAULT '1',
+    "numero" integer NOT NULL,
+    "total" numeric(12,2) NOT NULL DEFAULT 0,
+    "saldoPendiente" numeric(12,2) NOT NULL DEFAULT 0,
+    "estado" varchar(20) NOT NULL DEFAULT 'confirmada',
+    "observaciones" text,
+    "fecha" TIMESTAMP NOT NULL DEFAULT now(),
+    "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+    "deletedAt" TIMESTAMP,
+    "clienteId" integer,
+    "creadoPorId" integer
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS "notas_pedido_items" (
+    "id" SERIAL PRIMARY KEY,
+    "tipoItem" varchar(20) NOT NULL,
+    "descripcion" varchar(250) NOT NULL,
+    "plu" varchar(20),
+    "pesoGramos" numeric(10,2),
+    "fechaElaboracion" date,
+    "cantidad" integer NOT NULL DEFAULT 1,
+    "precioUnitario" numeric(12,2) NOT NULL DEFAULT 0,
+    "subtotal" numeric(12,2) NOT NULL DEFAULT 0,
+    "notaPedidoId" integer,
+    "unidadId" integer,
+    "elementoId" integer
+  )`,
 ];
 
 export async function ensureSchema(dataSource: DataSource): Promise<void> {

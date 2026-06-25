@@ -7,6 +7,9 @@ import { Empresa } from '../entities/Empresa';
 import { Indumentaria } from '../entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
 import { MovimientoElemento } from '../entities/MovimientoElemento';
+import { NotaPedido } from '../entities/NotaPedido';
+import { NotaPedidoItem } from '../entities/NotaPedidoItem';
+import { SecuenciaComprobante } from '../entities/SecuenciaComprobante';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
@@ -46,6 +49,9 @@ export const AppDataSource = new DataSource({
     MovimientoIndumentaria,
     Cliente,
     Empresa,
+    SecuenciaComprobante,
+    NotaPedido,
+    NotaPedidoItem,
   ],
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });

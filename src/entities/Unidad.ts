@@ -46,6 +46,11 @@ export class Unidad {
   @Column({ type: 'varchar', length: 100, nullable: true })
   numeroLote!: string | null;
 
+  // 🆕 Facturación: fecha en que se vendió (nota de pedido). Cuando se vende, la unidad
+  // queda activa=false + fechaVenta seteada. Se revierte con una nota de crédito.
+  @Column({ type: 'timestamp', nullable: true })
+  fechaVenta!: Date | null;
+
   // 🆕 Auditoría de Usuarios
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;

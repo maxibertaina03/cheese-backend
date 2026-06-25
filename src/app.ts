@@ -21,6 +21,7 @@ import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
 import proveedorRoutes from './routes/proveedor.routes'; // 🆕
 import clienteRoutes from './routes/cliente.routes'; // 🆕 facturación
 import empresaRoutes from './routes/empresa.routes'; // 🆕 facturación
+import notaPedidoRoutes from './routes/nota-pedido.routes'; // 🆕 facturación
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
@@ -124,6 +125,7 @@ app.use('/api/indumentaria', indumentariaRoutes); // 🆕
 app.use('/api/proveedores', proveedorRoutes); // 🆕
 app.use('/api/clientes', clienteRoutes); // 🆕 facturación
 app.use('/api/empresa', empresaRoutes); // 🆕 facturación
+app.use('/api/notas-pedido', notaPedidoRoutes); // 🆕 facturación
 
 app.use(errorHandler);
 

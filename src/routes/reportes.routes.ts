@@ -8,7 +8,7 @@ import {
   TopProductosQueryDto,
   VentasQueryDto,
 } from '../dtos/reportes.dto';
-import { auth } from '../middlewares/auth';
+import { auth, requirePermiso } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validation.middleware';
 
 const router = Router();
@@ -35,6 +35,12 @@ router.get(
   '/export/stock-lunes/pdf',
   auth,
   ReportesController.exportStockAlCortePdf.bind(ReportesController)
+);
+router.get(
+  '/export/nota-pedido/:id/pdf',
+  auth,
+  requirePermiso('facturacion'),
+  ReportesController.exportNotaPedidoPdf.bind(ReportesController)
 );
 
 // Indumentaria (prendas)

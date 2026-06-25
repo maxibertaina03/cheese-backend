@@ -10,7 +10,7 @@ export interface StockLunesProducto {
 }
 
 export interface MovimientoDesdeCorte {
-  tipo: 'corte' | 'baja';
+  tipo: 'corte' | 'baja' | 'venta';
   unidadId: number;
   producto: string;
   tipoQueso: string | null;
@@ -79,10 +79,16 @@ export async function computeStockAlCorte(corte: Date, ahora: Date = new Date())
     const fechasCortes = (unidad.particiones || []).map((p) => new Date(p.createdAt).getTime());
     const ultimoCorteMs = fechasCortes.length ? Math.max(...fechasCortes) : null;
 
+    // Venta (nota de pedido): la unidad sale entera del stock en su fechaVenta.
+    const fechaVentaMs = unidad.fechaVenta ? new Date(unidad.fechaVenta).getTime() : null;
+    const vendidaDespuesDelCorte = fechaVentaMs !== null && fechaVentaMs > corteMs;
+
     // ¿Estaba realmente en stock en la fecha de corte?
+    // - Si sigue activa, sí.
+    // - Si está inactiva, solo si se vació o se vendió DESPUÉS del corte.
     const estabaEnStock = unidad.activa
       ? true
-      : ultimoCorteMs !== null && ultimoCorteMs > corteMs;
+      : (ultimoCorteMs !== null && ultimoCorteMs > corteMs) || vendidaDespuesDelCorte;
 
     if (!estabaEnStock) {
       continue;
@@ -126,6 +132,20 @@ export async function computeStockAlCorte(corte: Date, ahora: Date = new Date())
         motivo: particion.motivo?.nombre ?? null,
         fecha: new Date(particion.createdAt).toISOString(),
         agotoUnidad: quedoAgotada && ultimoCorteMs !== null && fp === ultimoCorteMs,
+      });
+    }
+
+    // Venta (nota de pedido) posterior al corte: la unidad salió entera.
+    if (vendidaDespuesDelCorte && fechaVentaMs !== null && fechaVentaMs <= ahoraMs) {
+      movimientos.push({
+        tipo: 'venta',
+        unidadId: unidad.id,
+        producto: nombreProducto,
+        tipoQueso: nombreTipo,
+        peso: Number(unidad.pesoInicial),
+        motivo: null,
+        fecha: new Date(unidad.fechaVenta as Date).toISOString(),
+        agotoUnidad: true,
       });
     }
 

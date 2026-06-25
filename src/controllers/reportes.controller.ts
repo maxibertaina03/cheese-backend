@@ -3,8 +3,10 @@ import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../config/database';
+import { Empresa } from '../entities/Empresa';
 import { Indumentaria } from '../entities/Indumentaria';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
+import { NotaPedido } from '../entities/NotaPedido';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
@@ -1130,6 +1132,125 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="stock_al_lunes_${fileSuffix}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportNotaPedidoPdf(req: AuthRequest, res: Response) {
+    try {
+      const notaRepo = AppDataSource.getRepository(NotaPedido);
+      const nota = await notaRepo.findOne({
+        where: { id: Number(req.params.id) },
+        relations: ['cliente', 'items'],
+      });
+
+      if (!nota) {
+        return res.status(404).json({ error: 'Nota de pedido no encontrada' });
+      }
+
+      const empresa = await AppDataSource.getRepository(Empresa).findOne({
+        where: {},
+        order: { id: 'ASC' },
+      });
+
+      const numeroComprobante = `${nota.serie}-${nota.numero}`;
+      const formatMoney = (n: number | string | null | undefined) => `$ ${toNumber(n).toFixed(2)}`;
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      const subtituloEmisor = empresa?.razonSocial
+        ? `${empresa.razonSocial}${empresa.cuit ? ` · CUIT ${empresa.cuit}` : ''}`
+        : 'Las Tres Estrellas';
+
+      drawReportHeader(doc, `Nota de Pedido ${numeroComprobante}`, subtituloEmisor, nota.fecha);
+
+      drawSummaryCards(doc, [
+        { label: 'Comprobante', value: numeroComprobante },
+        { label: 'Fecha', value: formatDateLabel(nota.fecha) },
+        { label: 'Cliente', value: truncateText(nota.cliente?.nombre ?? '-', 24) },
+        { label: 'Total', value: formatMoney(nota.total) },
+      ]);
+
+      // Datos del emisor y del cliente
+      drawSectionTitle(doc, 'Emisor');
+      doc.font('Helvetica').fontSize(9).fillColor('#374151');
+      doc.text(
+        [
+          empresa?.razonSocial,
+          empresa?.cuit ? `CUIT: ${empresa.cuit}` : null,
+          empresa?.condicionIva,
+          empresa?.direccion,
+          [empresa?.codigoPostal, empresa?.localidad, empresa?.provincia].filter(Boolean).join(' '),
+          empresa?.telefono,
+        ]
+          .filter(Boolean)
+          .join('  |  ') || '-'
+      );
+
+      drawSectionTitle(doc, 'Cliente');
+      doc.font('Helvetica').fontSize(9).fillColor('#374151');
+      doc.text(
+        [
+          nota.cliente?.nombre,
+          nota.cliente?.numeroDocumento ? `${nota.cliente.tipoDocumento}: ${nota.cliente.numeroDocumento}` : null,
+          nota.cliente?.direccion,
+          [nota.cliente?.codigoPostal, nota.cliente?.localidad, nota.cliente?.provincia].filter(Boolean).join(' '),
+          nota.cliente?.telefono,
+        ]
+          .filter(Boolean)
+          .join('  |  ') || '-'
+      );
+
+      drawSectionTitle(doc, 'Detalle');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Descripción', x: 40, width: 180 },
+          { label: 'Identificación', x: 220, width: 170 },
+          { label: 'Cant.', x: 390, width: 45, align: 'right' },
+          { label: 'Precio', x: 435, width: 55, align: 'right' },
+          { label: 'Subtotal', x: 490, width: 65, align: 'right' },
+        ],
+        (nota.items ?? []).map((item) => {
+          const identificacion =
+            item.tipoItem === 'queso'
+              ? [
+                  item.plu ? `PLU ${item.plu}` : null,
+                  item.pesoGramos != null ? formatKgLabel(item.pesoGramos) : null,
+                  item.fechaElaboracion ? `elab ${formatDateLabel(item.fechaElaboracion)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : '-';
+          return [
+            truncateText(item.descripcion, 30),
+            identificacion,
+            String(item.cantidad),
+            formatMoney(item.precioUnitario),
+            formatMoney(item.subtotal),
+          ];
+        })
+      );
+
+      doc.moveDown(0.5);
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .fillColor('#111827')
+        .text(`TOTAL: ${formatMoney(nota.total)}`, 40, doc.y, {
+          width: doc.page.width - 80,
+          align: 'right',
+        });
+
+      drawPdfFooter(doc);
+      doc.end();
+      const buffer = await bufferPromise;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="nota_pedido_${nota.serie}-${nota.numero}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
