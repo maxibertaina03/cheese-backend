@@ -107,10 +107,13 @@ export class UnidadController {
 
   /**
    * Reconstruye el stock de quesos que existía en una fecha de corte (por defecto,
-   * el lunes más reciente), desglosado producto por producto. Para cada unidad calcula
-   * el peso que tenía en esa fecha (peso inicial menos los cortes hechos hasta el corte)
-   * y la cuenta como "en stock" solo si en ese momento todavía existía, no estaba dada
-   * de baja y tenía peso > 0.
+   * el lunes más reciente), desglosado producto por producto.
+   *
+   * Una unidad estaba en stock en la fecha de corte si fue creada antes del corte,
+   * no estaba dada de baja en ese momento, y además: o bien sigue activa hoy (su peso
+   * solo pudo haber bajado, así que en el corte tenía peso), o bien está agotada pero
+   * su último corte ocurrió DESPUÉS de la fecha de corte (se vació más tarde). Se usan
+   * estas señales firmes en lugar de restar pesos, que sufre derivas de redondeo.
    *
    * Además devuelve los movimientos (cortes y bajas) que esas mismas unidades tuvieron
    * DESDE la fecha de corte hasta ahora, para poder ver qué salió/se cortó en la semana.
@@ -151,26 +154,33 @@ export class UnidadController {
 
       let totalUnidades = 0;
 
+      const corteMs = corte.getTime();
+
       for (const unidad of unidades) {
         // Aún no existía en la fecha de corte.
-        if (new Date(unidad.createdAt) > corte) {
+        if (new Date(unidad.createdAt).getTime() > corteMs) {
           continue;
         }
 
         // Ya estaba dada de baja antes (o en) la fecha de corte.
-        if (unidad.deletedAt && new Date(unidad.deletedAt) <= corte) {
+        if (unidad.deletedAt && new Date(unidad.deletedAt).getTime() <= corteMs) {
           continue;
         }
 
-        // Peso consumido por cortes realizados hasta la fecha de corte.
-        const consumidoHastaCorte = (unidad.particiones || []).reduce((acc, particion) => {
-          return new Date(particion.createdAt) <= corte ? acc + Number(particion.peso) : acc;
-        }, 0);
+        // Fecha del último corte hecho a la unidad (cuando quedó agotada, suele ser éste).
+        const fechasCortes = (unidad.particiones || []).map((p) => new Date(p.createdAt).getTime());
+        const ultimoCorteMs = fechasCortes.length ? Math.max(...fechasCortes) : null;
 
-        const pesoEnCorte = Number(unidad.pesoInicial) - consumidoHastaCorte;
+        // ¿Estaba realmente en stock en la fecha de corte?
+        // Usamos señales firmes en vez de restar pesos (que sufre derivas de redondeo):
+        //  - Si la unidad SIGUE activa, tenía peso (el peso solo baja con el tiempo).
+        //  - Si está agotada, solo contó ese lunes si se vació DESPUÉS del corte,
+        //    es decir, si su último corte es posterior a la fecha de corte.
+        const estabaEnStock = unidad.activa
+          ? true
+          : ultimoCorteMs !== null && ultimoCorteMs > corteMs;
 
-        // En esa fecha ya estaba agotada (sin peso disponible).
-        if (pesoEnCorte <= 0.0001) {
+        if (!estabaEnStock) {
           continue;
         }
 
@@ -193,19 +203,18 @@ export class UnidadController {
         const nombreProducto = prod?.nombre ?? 'Producto desconocido';
         const nombreTipo = prod?.tipoQueso?.nombre ?? null;
 
-        // Cortes posteriores al corte. Se ordenan por fecha para detectar cuál dejó
-        // la unidad agotada (cuando el peso acumulado consumido alcanza el peso inicial).
-        const pesoInicial = Number(unidad.pesoInicial);
-        let acumulado = consumidoHastaCorte;
+        // Cortes posteriores al corte. La unidad quedó agotada si hoy ya no está activa
+        // ni dada de baja, y este corte fue el último (no hace falta sumar pesos).
+        const quedoAgotada = !unidad.activa && !unidad.deletedAt;
         const particionesPosteriores = (unidad.particiones || [])
           .filter((p) => {
-            const fp = new Date(p.createdAt);
-            return fp > corte && fp <= ahora;
+            const fp = new Date(p.createdAt).getTime();
+            return fp > corteMs && fp <= ahora.getTime();
           })
           .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
         for (const particion of particionesPosteriores) {
-          acumulado += Number(particion.peso);
+          const fp = new Date(particion.createdAt).getTime();
           movimientos.push({
             tipo: 'corte',
             unidadId: unidad.id,
@@ -214,12 +223,12 @@ export class UnidadController {
             peso: Number(particion.peso),
             motivo: particion.motivo?.nombre ?? null,
             fecha: new Date(particion.createdAt).toISOString(),
-            agotoUnidad: acumulado >= pesoInicial - 0.0001,
+            agotoUnidad: quedoAgotada && ultimoCorteMs !== null && fp === ultimoCorteMs,
           });
         }
 
         // Baja (eliminación) posterior al corte.
-        if (unidad.deletedAt && new Date(unidad.deletedAt) > corte) {
+        if (unidad.deletedAt && new Date(unidad.deletedAt).getTime() > corteMs) {
           movimientos.push({
             tipo: 'baja',
             unidadId: unidad.id,
