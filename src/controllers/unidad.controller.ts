@@ -107,10 +107,13 @@ export class UnidadController {
 
   /**
    * Reconstruye el stock de quesos que existía en una fecha de corte (por defecto,
-   * el lunes más reciente). Para cada unidad calcula el peso que tenía en esa fecha
-   * (peso inicial menos los cortes hechos hasta el corte) y la cuenta como "en stock"
-   * solo si en ese momento todavía existía, no estaba dada de baja y tenía peso > 0.
-   * El resultado se agrupa por tipo de queso.
+   * el lunes más reciente), desglosado producto por producto. Para cada unidad calcula
+   * el peso que tenía en esa fecha (peso inicial menos los cortes hechos hasta el corte)
+   * y la cuenta como "en stock" solo si en ese momento todavía existía, no estaba dada
+   * de baja y tenía peso > 0.
+   *
+   * Además devuelve los movimientos (cortes y bajas) que esas mismas unidades tuvieron
+   * DESDE la fecha de corte hasta ahora, para poder ver qué salió/se cortó en la semana.
    */
   static async getStockAlCorte(req: AuthRequest, res: Response) {
     try {
@@ -121,16 +124,32 @@ export class UnidadController {
         return res.status(400).json({ error: 'Fecha de corte inválida' });
       }
 
+      const ahora = new Date();
+
       const unidadRepo = AppDataSource.getRepository(Unidad);
       const unidades = await unidadRepo.find({
-        relations: ['producto', 'producto.tipoQueso', 'particiones'],
+        relations: ['producto', 'producto.tipoQueso', 'particiones', 'particiones.motivo'],
         withDeleted: true,
       });
 
-      const grupos = new Map<
+      const productos = new Map<
         number,
-        { tipoQuesoId: number; tipoQueso: string; cantidad: number; pesoTotal: number }
+        { productoId: number; producto: string; plu: string; tipoQueso: string | null; cantidad: number }
       >();
+
+      type Movimiento = {
+        tipo: 'corte' | 'baja';
+        unidadId: number;
+        producto: string;
+        tipoQueso: string | null;
+        peso: number | null;
+        motivo: string | null;
+        fecha: string;
+        agotoUnidad: boolean;
+      };
+      const movimientos: Movimiento[] = [];
+
+      let totalUnidades = 0;
 
       for (const unidad of unidades) {
         // Aún no existía en la fecha de corte.
@@ -144,41 +163,87 @@ export class UnidadController {
         }
 
         // Peso consumido por cortes realizados hasta la fecha de corte.
-        const consumido = (unidad.particiones || []).reduce((acc, particion) => {
+        const consumidoHastaCorte = (unidad.particiones || []).reduce((acc, particion) => {
           return new Date(particion.createdAt) <= corte ? acc + Number(particion.peso) : acc;
         }, 0);
 
-        const pesoEnCorte = Number(unidad.pesoInicial) - consumido;
+        const pesoEnCorte = Number(unidad.pesoInicial) - consumidoHastaCorte;
 
         // En esa fecha ya estaba agotada (sin peso disponible).
         if (pesoEnCorte <= 0.0001) {
           continue;
         }
 
-        const tipo = unidad.producto?.tipoQueso;
-        if (!tipo) {
-          continue;
+        // --- La unidad estaba en stock el lunes: la contamos por producto ---
+        totalUnidades += 1;
+        const prod = unidad.producto;
+        if (prod) {
+          const grupo = productos.get(prod.id) || {
+            productoId: prod.id,
+            producto: prod.nombre,
+            plu: prod.plu,
+            tipoQueso: prod.tipoQueso?.nombre ?? null,
+            cantidad: 0,
+          };
+          grupo.cantidad += 1;
+          productos.set(prod.id, grupo);
         }
 
-        const grupo = grupos.get(tipo.id) || {
-          tipoQuesoId: tipo.id,
-          tipoQueso: tipo.nombre,
-          cantidad: 0,
-          pesoTotal: 0,
-        };
-        grupo.cantidad += 1;
-        grupo.pesoTotal += pesoEnCorte;
-        grupos.set(tipo.id, grupo);
+        // --- Movimientos de ESTA unidad desde el corte hasta ahora ---
+        const nombreProducto = prod?.nombre ?? 'Producto desconocido';
+        const nombreTipo = prod?.tipoQueso?.nombre ?? null;
+
+        // Cortes posteriores al corte. Se ordenan por fecha para detectar cuál dejó
+        // la unidad agotada (cuando el peso acumulado consumido alcanza el peso inicial).
+        const pesoInicial = Number(unidad.pesoInicial);
+        let acumulado = consumidoHastaCorte;
+        const particionesPosteriores = (unidad.particiones || [])
+          .filter((p) => {
+            const fp = new Date(p.createdAt);
+            return fp > corte && fp <= ahora;
+          })
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        for (const particion of particionesPosteriores) {
+          acumulado += Number(particion.peso);
+          movimientos.push({
+            tipo: 'corte',
+            unidadId: unidad.id,
+            producto: nombreProducto,
+            tipoQueso: nombreTipo,
+            peso: Number(particion.peso),
+            motivo: particion.motivo?.nombre ?? null,
+            fecha: new Date(particion.createdAt).toISOString(),
+            agotoUnidad: acumulado >= pesoInicial - 0.0001,
+          });
+        }
+
+        // Baja (eliminación) posterior al corte.
+        if (unidad.deletedAt && new Date(unidad.deletedAt) > corte) {
+          movimientos.push({
+            tipo: 'baja',
+            unidadId: unidad.id,
+            producto: nombreProducto,
+            tipoQueso: nombreTipo,
+            peso: null,
+            motivo: null,
+            fecha: new Date(unidad.deletedAt).toISOString(),
+            agotoUnidad: true,
+          });
+        }
       }
 
-      const items = Array.from(grupos.values())
-        .map((grupo) => ({ ...grupo, pesoTotal: Math.round(grupo.pesoTotal * 100) / 100 }))
-        .sort((a, b) => a.tipoQueso.localeCompare(b.tipoQueso, 'es'));
+      const productosArr = Array.from(productos.values()).sort((a, b) =>
+        a.producto.localeCompare(b.producto, 'es')
+      );
+
+      movimientos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
       res.json({
         fechaCorte: corte.toISOString(),
-        totalUnidades: items.reduce((acc, item) => acc + item.cantidad, 0),
-        items,
+        totalUnidades,
+        productos: productosArr,
+        movimientos,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
