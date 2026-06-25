@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { Cliente } from '../entities/Cliente';
 import { Elemento } from '../entities/Elemento';
+import { Empresa } from '../entities/Empresa';
 import { Indumentaria } from '../entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
 import { MovimientoElemento } from '../entities/MovimientoElemento';
@@ -42,6 +44,8 @@ export const AppDataSource = new DataSource({
     Proveedor,
     Indumentaria,
     MovimientoIndumentaria,
+    Cliente,
+    Empresa,
   ],
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });

@@ -1,6 +1,6 @@
 import { IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength, Matches } from 'class-validator';
 
-const MODULOS_VALIDOS = ['quesos', 'elementos', 'indumentaria', 'dashboard', 'historial'];
+const MODULOS_VALIDOS = ['quesos', 'elementos', 'indumentaria', 'dashboard', 'historial', 'facturacion'];
 
 export class RegisterDto {
   @IsString()

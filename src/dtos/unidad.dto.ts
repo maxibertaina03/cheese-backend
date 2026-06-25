@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsInt, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 const nullToUndefined = ({ value }: { value: unknown }) =>
   value === null || value === '' ? undefined : value;
@@ -25,6 +25,16 @@ export class CreateUnidadDto {
   @IsInt()
   @Min(1)
   motivoId!: number;
+
+  // Fecha de elaboración del queso (obligatoria) en formato YYYY-MM-DD
+  @IsDateString()
+  fechaElaboracion!: string;
+
+  @Transform(nullToUndefined)
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  numeroLote?: string;
 }
 
 export class UpdateUnidadDto {

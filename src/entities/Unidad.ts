@@ -38,6 +38,14 @@ export class Unidad {
   @Column({ type: 'text', nullable: true })
   observacionesIngreso!: string | null;
 
+  // 🆕 Identificación del queso para facturación: fecha de elaboración (obligatoria al
+  // cargar nuevas unidades) y número de lote opcional. Nullable en DB por filas previas.
+  @Column({ type: 'date', nullable: true })
+  fechaElaboracion!: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  numeroLote!: string | null;
+
   // 🆕 Auditoría de Usuarios
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;

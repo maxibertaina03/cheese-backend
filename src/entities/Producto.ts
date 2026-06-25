@@ -32,6 +32,10 @@ export class Producto {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   precioPorKilo!: number | null;
 
+  // 🆕 Precio de venta por unidad (para el módulo de facturación)
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  precioUnitario!: number | null;
+
   @ManyToOne(() => TipoQueso, (tipo) => tipo.productos, { nullable: false })
   tipoQueso!: TipoQueso;
 

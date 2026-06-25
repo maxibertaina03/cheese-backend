@@ -25,10 +25,14 @@ type AddParticionResult =
 export class UnidadController {
   static async create(req: AuthRequest, res: Response) {
     try {
-      const { productoId, pesoInicial, observacionesIngreso, motivoId } = req.body;
+      const { productoId, pesoInicial, observacionesIngreso, motivoId, fechaElaboracion, numeroLote } = req.body;
 
       if (!motivoId) {
         return res.status(400).json({ error: 'El motivo de ingreso es obligatorio' });
+      }
+
+      if (!fechaElaboracion) {
+        return res.status(400).json({ error: 'La fecha de elaboración es obligatoria' });
       }
 
       const motivoRepo = AppDataSource.getRepository(Motivo);
@@ -64,6 +68,8 @@ export class UnidadController {
         pesoActual: pesoInicial,
         activa: true,
         observacionesIngreso: observacionesIngreso || null,
+        fechaElaboracion,
+        numeroLote: numeroLote || null,
         creadoPor: usuarioCreador,
         motivo,
       });

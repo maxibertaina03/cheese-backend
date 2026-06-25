@@ -32,6 +32,13 @@ export class Elemento {
   @Column({ default: true })
   activo!: boolean;
 
+  // 🆕 Facturación: precio de venta por unidad y si el elemento se vende
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  precioUnitario!: number;
+
+  @Column({ default: false })
+  esVendible!: boolean;
+
   // Relación con movimientos (historial de ingresos/egresos)
   @OneToMany(() => MovimientoElemento, mov => mov.elemento)
   movimientos!: MovimientoElemento[];

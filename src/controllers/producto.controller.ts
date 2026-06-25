@@ -14,7 +14,7 @@ export class ProductoController {
   // POST /api/productos - Crear producto
   static async create(req: AuthRequest, res: Response) {
     try {
-      const { plu, nombre, tipoQuesoId, seVendePorUnidad, precioPorKilo } = req.body;
+      const { plu, nombre, tipoQuesoId, seVendePorUnidad, precioPorKilo, precioUnitario } = req.body;
 
       const productoRepo = AppDataSource.getRepository(Producto);
       const tipoRepo = AppDataSource.getRepository(TipoQueso);
@@ -42,6 +42,7 @@ export class ProductoController {
         tipoQueso,
         seVendePorUnidad,
         precioPorKilo: precioPorKilo ?? null,
+        precioUnitario: precioUnitario ?? null,
         creadoPor: usuarioCreador, // 🆕
       });
 
@@ -98,7 +99,7 @@ export class ProductoController {
   static async update(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
-      const { nombre, plu, seVendePorUnidad, precioPorKilo, tipoQuesoId } = req.body;
+      const { nombre, plu, seVendePorUnidad, precioPorKilo, precioUnitario, tipoQuesoId } = req.body;
 
       const productoRepo = AppDataSource.getRepository(Producto);
       const tipoRepo = AppDataSource.getRepository(TipoQueso);
@@ -140,6 +141,7 @@ export class ProductoController {
       if (nombre) producto.nombre = nombre;
       if (seVendePorUnidad !== undefined) producto.seVendePorUnidad = seVendePorUnidad;
       if (precioPorKilo !== undefined) producto.precioPorKilo = precioPorKilo;
+      if (precioUnitario !== undefined) producto.precioUnitario = precioUnitario;
       producto.modificadoPor = usuarioModificador; // 🆕
 
       await productoRepo.save(producto);

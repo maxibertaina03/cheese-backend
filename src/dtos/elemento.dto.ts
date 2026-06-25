@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 
 const nullToUndefined = ({ value }: { value: unknown }) =>
   value === null || value === '' ? undefined : value;
@@ -20,6 +20,17 @@ export class CreateElementoDto {
   @IsString()
   @MaxLength(500)
   descripcion?: string;
+
+  @Transform(nullToUndefined)
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  precioUnitario?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  esVendible?: boolean;
 }
 
 export class UpdateElementoDto {
@@ -35,6 +46,17 @@ export class UpdateElementoDto {
   @IsString()
   @MaxLength(500)
   descripcion?: string;
+
+  @Transform(nullToUndefined)
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  precioUnitario?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  esVendible?: boolean;
 }
 
 export class MovimientoElementoDto {

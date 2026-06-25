@@ -67,7 +67,7 @@ export class ElementoController {
   // POST /api/elementos - Crear nuevo elemento
   static async create(req: AuthRequest, res: Response) {
     try {
-      const { nombre, cantidadTotal, descripcion } = req.body;
+      const { nombre, cantidadTotal, descripcion, precioUnitario, esVendible } = req.body;
 
       if (!nombre || cantidadTotal === undefined) {
         return res.status(400).json({ 
@@ -105,6 +105,8 @@ export class ElementoController {
         cantidadDisponible: cantidadInicial,
         cantidadTotal: cantidadInicial,
         activo: true,
+        precioUnitario: precioUnitario ?? 0,
+        esVendible: esVendible ?? false,
         creadoPor: usuarioCreador,
       });
 
@@ -136,7 +138,7 @@ export class ElementoController {
   // PUT /api/elementos/:id - Actualizar elemento (solo nombre/descripción)
   static async update(req: AuthRequest, res: Response) {
     try {
-      const { nombre, descripcion } = req.body;
+      const { nombre, descripcion, precioUnitario, esVendible } = req.body;
       const elementoRepo = AppDataSource.getRepository(Elemento);
       const usuarioRepo = AppDataSource.getRepository(Usuario);
 
@@ -156,6 +158,8 @@ export class ElementoController {
 
       if (nombre !== undefined) elemento.nombre = nombre;
       if (descripcion !== undefined) elemento.descripcion = descripcion;
+      if (precioUnitario !== undefined) elemento.precioUnitario = precioUnitario;
+      if (esVendible !== undefined) elemento.esVendible = esVendible;
       elemento.modificadoPor = usuarioModificador;
 
       await elementoRepo.save(elemento);
