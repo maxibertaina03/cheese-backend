@@ -31,6 +31,11 @@ router.get(
   validateDto(ExportHistorialPdfQueryDto, 'query'),
   ReportesController.exportHistorialPdf.bind(ReportesController)
 );
+router.get(
+  '/export/stock-lunes/pdf',
+  auth,
+  ReportesController.exportStockAlCortePdf.bind(ReportesController)
+);
 
 // Indumentaria (prendas)
 router.get(

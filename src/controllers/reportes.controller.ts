@@ -8,6 +8,7 @@ import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
+import { computeStockAlCorte, getUltimoLunes } from '../services/stockAlCorte.service';
 
 type RawVenta = {
   fecha: string;
@@ -1055,6 +1056,80 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="historial_${fileSuffix}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportStockAlCortePdf(req: AuthRequest, res: Response) {
+    try {
+      const fechaParam = typeof req.query.fecha === 'string' ? req.query.fecha : undefined;
+      const corte = fechaParam ? new Date(fechaParam) : getUltimoLunes();
+
+      if (Number.isNaN(corte.getTime())) {
+        return res.status(400).json({ error: 'Fecha de corte inválida' });
+      }
+
+      const data = await computeStockAlCorte(corte);
+      const fechaLabel = formatDateLabel(data.fechaCorte);
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      drawReportHeader(doc, 'Stock al lunes', `Las Tres Estrellas | Stock al ${fechaLabel}`);
+      drawSummaryCards(doc, [
+        { label: 'Total de quesos', value: String(data.totalUnidades) },
+        { label: 'Productos distintos', value: String(data.productos.length) },
+        { label: 'Movimientos desde el lunes', value: String(data.movimientos.length) },
+        { label: 'Fecha de corte', value: fechaLabel },
+      ]);
+
+      drawSectionTitle(doc, 'Stock por producto');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Producto', x: 40, width: 250 },
+          { label: 'Tipo', x: 290, width: 130 },
+          { label: 'Cantidad', x: 420, width: 135, align: 'right' },
+        ],
+        data.productos.map((row) => [row.producto, textOrDash(row.tipoQueso), String(row.cantidad)])
+      );
+
+      drawSectionTitle(doc, 'Lo que salió o se cortó desde el lunes');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Fecha', x: 40, width: 75 },
+          { label: 'Producto', x: 115, width: 150 },
+          { label: 'Movimiento', x: 265, width: 120 },
+          { label: 'Peso', x: 385, width: 70, align: 'right' },
+          { label: 'Motivo', x: 455, width: 100 },
+        ],
+        data.movimientos.map((mov) => {
+          const movimientoLabel =
+            mov.tipo === 'baja'
+              ? 'Dado de baja'
+              : mov.agotoUnidad
+              ? 'Corte (quedó agotado)'
+              : 'Corte';
+          return [
+            formatDateLabel(mov.fecha),
+            `${truncateText(mov.producto, 26)} #${mov.unidadId}`,
+            movimientoLabel,
+            mov.peso != null ? formatKgLabel(mov.peso) : '-',
+            textOrDash(mov.motivo),
+          ];
+        })
+      );
+
+      drawPdfFooter(doc);
+      doc.end();
+      const buffer = await bufferPromise;
+      const fileSuffix = formatDateParam(corte);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="stock_al_lunes_${fileSuffix}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

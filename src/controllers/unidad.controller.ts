@@ -6,6 +6,7 @@ import { Producto } from '../entities/Producto';
 import { Unidad } from '../entities/Unidad';
 import { Usuario } from '../entities/Usuario';
 import { AuthRequest } from '../middlewares/auth';
+import { computeStockAlCorte, getUltimoLunes } from '../services/stockAlCorte.service';
 
 type ControllerErrorResult = {
   error: {
@@ -20,16 +21,6 @@ type AddParticionResult =
       unidad: Unidad;
       particion: Particion | null;
     };
-
-// Calcula el inicio (00:00) del lunes más reciente, en horario local del servidor.
-// Se usa solo como fallback: normalmente el frontend envía la fecha de corte ya
-// calculada en la zona horaria del usuario.
-const getUltimoLunes = (): Date => {
-  const now = new Date();
-  const day = now.getDay(); // 0 = domingo, 1 = lunes, ...
-  const diasDesdeLunes = (day + 6) % 7;
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasDesdeLunes, 0, 0, 0, 0);
-};
 
 export class UnidadController {
   static async create(req: AuthRequest, res: Response) {
@@ -127,133 +118,8 @@ export class UnidadController {
         return res.status(400).json({ error: 'Fecha de corte inválida' });
       }
 
-      const ahora = new Date();
-
-      const unidadRepo = AppDataSource.getRepository(Unidad);
-      const unidades = await unidadRepo.find({
-        relations: ['producto', 'producto.tipoQueso', 'particiones', 'particiones.motivo'],
-        withDeleted: true,
-      });
-
-      const productos = new Map<
-        number,
-        { productoId: number; producto: string; plu: string; tipoQueso: string | null; cantidad: number }
-      >();
-
-      type Movimiento = {
-        tipo: 'corte' | 'baja';
-        unidadId: number;
-        producto: string;
-        tipoQueso: string | null;
-        peso: number | null;
-        motivo: string | null;
-        fecha: string;
-        agotoUnidad: boolean;
-      };
-      const movimientos: Movimiento[] = [];
-
-      let totalUnidades = 0;
-
-      const corteMs = corte.getTime();
-
-      for (const unidad of unidades) {
-        // Aún no existía en la fecha de corte.
-        if (new Date(unidad.createdAt).getTime() > corteMs) {
-          continue;
-        }
-
-        // Ya estaba dada de baja antes (o en) la fecha de corte.
-        if (unidad.deletedAt && new Date(unidad.deletedAt).getTime() <= corteMs) {
-          continue;
-        }
-
-        // Fecha del último corte hecho a la unidad (cuando quedó agotada, suele ser éste).
-        const fechasCortes = (unidad.particiones || []).map((p) => new Date(p.createdAt).getTime());
-        const ultimoCorteMs = fechasCortes.length ? Math.max(...fechasCortes) : null;
-
-        // ¿Estaba realmente en stock en la fecha de corte?
-        // Usamos señales firmes en vez de restar pesos (que sufre derivas de redondeo):
-        //  - Si la unidad SIGUE activa, tenía peso (el peso solo baja con el tiempo).
-        //  - Si está agotada, solo contó ese lunes si se vació DESPUÉS del corte,
-        //    es decir, si su último corte es posterior a la fecha de corte.
-        const estabaEnStock = unidad.activa
-          ? true
-          : ultimoCorteMs !== null && ultimoCorteMs > corteMs;
-
-        if (!estabaEnStock) {
-          continue;
-        }
-
-        // --- La unidad estaba en stock el lunes: la contamos por producto ---
-        totalUnidades += 1;
-        const prod = unidad.producto;
-        if (prod) {
-          const grupo = productos.get(prod.id) || {
-            productoId: prod.id,
-            producto: prod.nombre,
-            plu: prod.plu,
-            tipoQueso: prod.tipoQueso?.nombre ?? null,
-            cantidad: 0,
-          };
-          grupo.cantidad += 1;
-          productos.set(prod.id, grupo);
-        }
-
-        // --- Movimientos de ESTA unidad desde el corte hasta ahora ---
-        const nombreProducto = prod?.nombre ?? 'Producto desconocido';
-        const nombreTipo = prod?.tipoQueso?.nombre ?? null;
-
-        // Cortes posteriores al corte. La unidad quedó agotada si hoy ya no está activa
-        // ni dada de baja, y este corte fue el último (no hace falta sumar pesos).
-        const quedoAgotada = !unidad.activa && !unidad.deletedAt;
-        const particionesPosteriores = (unidad.particiones || [])
-          .filter((p) => {
-            const fp = new Date(p.createdAt).getTime();
-            return fp > corteMs && fp <= ahora.getTime();
-          })
-          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-        for (const particion of particionesPosteriores) {
-          const fp = new Date(particion.createdAt).getTime();
-          movimientos.push({
-            tipo: 'corte',
-            unidadId: unidad.id,
-            producto: nombreProducto,
-            tipoQueso: nombreTipo,
-            peso: Number(particion.peso),
-            motivo: particion.motivo?.nombre ?? null,
-            fecha: new Date(particion.createdAt).toISOString(),
-            agotoUnidad: quedoAgotada && ultimoCorteMs !== null && fp === ultimoCorteMs,
-          });
-        }
-
-        // Baja (eliminación) posterior al corte.
-        if (unidad.deletedAt && new Date(unidad.deletedAt).getTime() > corteMs) {
-          movimientos.push({
-            tipo: 'baja',
-            unidadId: unidad.id,
-            producto: nombreProducto,
-            tipoQueso: nombreTipo,
-            peso: null,
-            motivo: null,
-            fecha: new Date(unidad.deletedAt).toISOString(),
-            agotoUnidad: true,
-          });
-        }
-      }
-
-      const productosArr = Array.from(productos.values()).sort((a, b) =>
-        a.producto.localeCompare(b.producto, 'es')
-      );
-
-      movimientos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-
-      res.json({
-        fechaCorte: corte.toISOString(),
-        totalUnidades,
-        productos: productosArr,
-        movimientos,
-      });
+      const resultado = await computeStockAlCorte(corte);
+      res.json(resultado);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
