@@ -236,7 +236,11 @@ const buildPdfBuffer = (doc: PDFKit.PDFDocument) =>
 
 const drawSectionTitle = (doc: PDFKit.PDFDocument, title: string) => {
   doc.moveDown(0.8);
-  doc.fillColor('#111827').font('Helvetica-Bold').fontSize(13).text(title);
+  // Posicionar siempre en el margen izquierdo: si el cursor quedó corrido a la derecha
+  // (p. ej. tras dibujar tarjetas), un ancho casi nulo hace que el texto se envuelva mal
+  // y PDFKit termine generando páginas en blanco.
+  doc.x = doc.page.margins.left;
+  doc.fillColor('#111827').font('Helvetica-Bold').fontSize(13).text(title, doc.page.margins.left, doc.y);
   doc.moveDown(0.3);
 };
 
@@ -310,6 +314,9 @@ const drawSummaryCards = (doc: PDFKit.PDFDocument, cards: Array<{ label: string;
     doc.restore();
   });
 
+  // Reposicionar el cursor al margen izquierdo (las tarjetas lo dejan corrido a la derecha,
+  // lo que puede provocar texto mal envuelto y páginas en blanco en lo que sigue).
+  doc.x = left;
   doc.y = y + 50;
 };
 
@@ -1156,63 +1163,99 @@ export class ReportesController {
       });
 
       const numeroComprobante = `${nota.serie}-${nota.numero}`;
-      const formatMoney = (n: number | string | null | undefined) => `$ ${toNumber(n).toFixed(2)}`;
+      const pesos = (n: number | string | null | undefined) =>
+        `$ ${toNumber(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      // Sin bufferPages: layout propio de una sola página (footer manual).
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const bufferPromise = buildPdfBuffer(doc);
 
-      const subtituloEmisor = empresa?.razonSocial
-        ? `${empresa.razonSocial}${empresa.cuit ? ` · CUIT ${empresa.cuit}` : ''}`
-        : 'Las Tres Estrellas';
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const contentW = right - left;
+      const top = doc.page.margins.top;
 
-      drawReportHeader(doc, `Nota de Pedido ${numeroComprobante}`, subtituloEmisor, nota.fecha);
+      // ----- Encabezado: emisor a la izquierda, comprobante a la derecha -----
+      const headerH = 86;
+      const splitX = left + contentW * 0.58;
+      doc.save();
+      doc.roundedRect(left, top, contentW, headerH, 6).fill('#111827');
+      doc.restore();
 
-      drawSummaryCards(doc, [
-        { label: 'Comprobante', value: numeroComprobante },
-        { label: 'Fecha', value: formatDateLabel(nota.fecha) },
-        { label: 'Cliente', value: truncateText(nota.cliente?.nombre ?? '-', 24) },
-        { label: 'Total', value: formatMoney(nota.total) },
-      ]);
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(16)
+        .text(empresa?.razonSocial || 'Mi empresa', left + 16, top + 13, { width: splitX - left - 24 });
+      const emisorInfo = [
+        [empresa?.cuit ? `CUIT ${empresa.cuit}` : null, empresa?.condicionIva].filter(Boolean).join(' · '),
+        empresa?.direccion,
+        [empresa?.codigoPostal, empresa?.localidad, empresa?.provincia].filter(Boolean).join(' '),
+        empresa?.telefono ? `Tel ${empresa.telefono}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#cbd5e1')
+        .text(emisorInfo, left + 16, top + 38, { width: splitX - left - 24, lineGap: 1.5 });
 
-      // Datos del emisor y del cliente
-      drawSectionTitle(doc, 'Emisor');
-      doc.font('Helvetica').fontSize(9).fillColor('#374151');
-      doc.text(
-        [
-          empresa?.razonSocial,
-          empresa?.cuit ? `CUIT: ${empresa.cuit}` : null,
-          empresa?.condicionIva,
-          empresa?.direccion,
-          [empresa?.codigoPostal, empresa?.localidad, empresa?.provincia].filter(Boolean).join(' '),
-          empresa?.telefono,
-        ]
-          .filter(Boolean)
-          .join('  |  ') || '-'
-      );
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text('NOTA DE PEDIDO', splitX, top + 16, { width: right - splitX - 14, align: 'right' });
+      doc
+        .fontSize(22)
+        .text(`N° ${numeroComprobante}`, splitX, top + 32, { width: right - splitX - 14, align: 'right' });
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#cbd5e1')
+        .text(`Fecha: ${formatDateLabel(nota.fecha)}`, splitX, top + 62, {
+          width: right - splitX - 14,
+          align: 'right',
+        });
 
-      drawSectionTitle(doc, 'Cliente');
-      doc.font('Helvetica').fontSize(9).fillColor('#374151');
-      doc.text(
-        [
-          nota.cliente?.nombre,
-          nota.cliente?.numeroDocumento ? `${nota.cliente.tipoDocumento}: ${nota.cliente.numeroDocumento}` : null,
-          nota.cliente?.direccion,
-          [nota.cliente?.codigoPostal, nota.cliente?.localidad, nota.cliente?.provincia].filter(Boolean).join(' '),
-          nota.cliente?.telefono,
-        ]
-          .filter(Boolean)
-          .join('  |  ') || '-'
-      );
+      // ----- Caja de cliente (todo el ancho) -----
+      const clienteY = top + headerH + 18;
+      const clienteH = 72;
+      doc.save();
+      doc.roundedRect(left, clienteY, contentW, clienteH, 6).fillAndStroke('#f9fafb', '#e5e7eb');
+      doc.restore();
+      doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(8).text('CLIENTE', left + 14, clienteY + 10);
+      doc
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .text(nota.cliente?.nombre || '-', left + 14, clienteY + 22, { width: contentW - 28 });
+      const clienteInfo = [
+        nota.cliente?.numeroDocumento ? `${nota.cliente.tipoDocumento} ${nota.cliente.numeroDocumento}` : null,
+        nota.cliente?.direccion,
+        [nota.cliente?.codigoPostal, nota.cliente?.localidad, nota.cliente?.provincia].filter(Boolean).join(' '),
+        nota.cliente?.telefono ? `Tel ${nota.cliente.telefono}` : null,
+      ]
+        .filter(Boolean)
+        .join('   ·   ');
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#374151')
+        .text(clienteInfo, left + 14, clienteY + 44, { width: contentW - 28 });
 
-      drawSectionTitle(doc, 'Detalle');
+      // ----- Detalle del pedido -----
+      doc.x = left;
+      doc.y = clienteY + clienteH + 18;
+      drawSectionTitle(doc, 'Detalle del pedido');
       this.drawSimpleTable(
         doc,
         [
-          { label: 'Descripción', x: 40, width: 180 },
-          { label: 'Identificación', x: 220, width: 170 },
-          { label: 'Cant.', x: 390, width: 45, align: 'right' },
-          { label: 'Precio', x: 435, width: 55, align: 'right' },
-          { label: 'Subtotal', x: 490, width: 65, align: 'right' },
+          { label: 'Cant.', x: 40, width: 40, align: 'center' },
+          { label: 'Descripción', x: 80, width: 200 },
+          { label: 'Identificación', x: 280, width: 130 },
+          { label: 'P. unit.', x: 410, width: 70, align: 'right' },
+          { label: 'Subtotal', x: 480, width: 75, align: 'right' },
         ],
         (nota.items ?? []).map((item) => {
           const identificacion =
@@ -1226,26 +1269,46 @@ export class ReportesController {
                   .join(' · ')
               : '-';
           return [
-            truncateText(item.descripcion, 30),
-            identificacion,
             String(item.cantidad),
-            formatMoney(item.precioUnitario),
-            formatMoney(item.subtotal),
+            truncateText(item.descripcion, 34),
+            identificacion,
+            pesos(item.precioUnitario),
+            pesos(item.subtotal),
           ];
         })
       );
 
-      doc.moveDown(0.5);
+      // ----- Total (chip oscuro a la derecha) -----
+      doc.moveDown(0.6);
+      const totalY = doc.y;
+      doc.save();
+      doc.roundedRect(right - 230, totalY, 230, 32, 5).fill('#111827');
+      doc.restore();
       doc
+        .fillColor('#ffffff')
         .font('Helvetica-Bold')
-        .fontSize(13)
-        .fillColor('#111827')
-        .text(`TOTAL: ${formatMoney(nota.total)}`, 40, doc.y, {
-          width: doc.page.width - 80,
-          align: 'right',
+        .fontSize(14)
+        .text(`TOTAL   ${pesos(nota.total)}`, right - 230, totalY + 9, { width: 216, align: 'right' });
+      doc.y = totalY + 44;
+
+      if (nota.observaciones) {
+        doc
+          .fillColor('#6b7280')
+          .font('Helvetica')
+          .fontSize(9)
+          .text(`Observaciones: ${nota.observaciones}`, left, doc.y, { width: contentW });
+      }
+
+      // ----- Pie (manual, una sola hoja) -----
+      doc
+        .fillColor('#9ca3af')
+        .font('Helvetica')
+        .fontSize(8)
+        .text('Documento no válido como factura · Comprobante interno de venta', left, doc.page.height - 38, {
+          width: contentW,
+          align: 'center',
         });
 
-      drawPdfFooter(doc);
       doc.end();
       const buffer = await bufferPromise;
 
