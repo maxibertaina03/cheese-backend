@@ -26,6 +26,9 @@ export class Unidad {
   })
   producto!: Producto;
 
+  @Column()
+  productoId!: number;
+
   @Column('decimal', { precision: 10, scale: 2 })
   pesoInicial!: number;
 

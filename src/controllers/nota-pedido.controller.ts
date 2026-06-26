@@ -5,6 +5,7 @@ import { Elemento } from '../entities/Elemento';
 import { MovimientoElemento } from '../entities/MovimientoElemento';
 import { NotaPedido } from '../entities/NotaPedido';
 import { NotaPedidoItem } from '../entities/NotaPedidoItem';
+import { Producto } from '../entities/Producto';
 import { SecuenciaComprobante } from '../entities/SecuenciaComprobante';
 import { Unidad } from '../entities/Unidad';
 import { Usuario } from '../entities/Usuario';
@@ -88,9 +89,10 @@ export class NotaPedidoController {
 
         for (const it of items) {
           if (it.tipoItem === 'queso') {
+            // Se bloquea la unidad SOLA (sin join a producto): Postgres no permite
+            // FOR UPDATE sobre el lado nullable de un outer join. El producto se carga aparte.
             const unidad = await unidadRepo.findOne({
               where: { id: it.unidadId },
-              relations: ['producto'],
               lock: { mode: 'pessimistic_write' },
             });
             if (!unidad) {
@@ -102,9 +104,11 @@ export class NotaPedidoController {
             if (Number(unidad.pesoActual) !== Number(unidad.pesoInicial)) {
               return fail(400, `Solo se pueden vender quesos enteros (el #${unidad.id} ya está empezado)`);
             }
-            const precio = unidad.producto?.precioUnitario;
+
+            const producto = await manager.getRepository(Producto).findOneBy({ id: unidad.productoId });
+            const precio = producto?.precioUnitario;
             if (precio === null || precio === undefined) {
-              return fail(400, `El producto "${unidad.producto?.nombre ?? ''}" no tiene precio por unidad cargado`);
+              return fail(400, `El producto "${producto?.nombre ?? ''}" no tiene precio por unidad cargado`);
             }
 
             unidad.activa = false;
@@ -117,8 +121,8 @@ export class NotaPedidoController {
               tipoItem: 'queso',
               unidad,
               elemento: null,
-              descripcion: unidad.producto?.nombre ?? 'Queso',
-              plu: unidad.producto?.plu ?? null,
+              descripcion: producto?.nombre ?? 'Queso',
+              plu: producto?.plu ?? null,
               pesoGramos: Number(unidad.pesoInicial),
               fechaElaboracion: unidad.fechaElaboracion,
               cantidad: 1,
