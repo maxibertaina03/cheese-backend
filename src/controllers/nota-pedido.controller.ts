@@ -31,6 +31,7 @@ export class NotaPedidoController {
       });
       res.json(notas);
     } catch (error: any) {
+      console.error('❌ Error en getAll notas-pedido:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -233,6 +234,7 @@ export class NotaPedidoController {
       });
       res.status(201).json(notaCompleta);
     } catch (error: any) {
+      console.error('❌ Error en create nota-pedido:', error);
       res.status(500).json({ error: error.message });
     }
   }
