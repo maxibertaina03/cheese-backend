@@ -7,6 +7,7 @@ import { Indumentaria } from '../entities/Indumentaria';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 import { Empresa } from '../modules/facturacion/entities/Empresa';
 import { NotaPedido } from '../modules/facturacion/entities/NotaPedido';
+import { NotaCredito } from '../modules/facturacion/entities/NotaCredito';
 import { Recibo } from '../modules/facturacion/entities/Recibo';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
@@ -1475,6 +1476,155 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="recibo_${recibo.serie}-${recibo.numero}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportNotaCreditoPdf(req: AuthRequest, res: Response) {
+    try {
+      const nc = await AppDataSource.getRepository(NotaCredito).findOne({
+        where: { id: Number(req.params.id) },
+        relations: ['cliente', 'notaPedido', 'items'],
+      });
+
+      if (!nc) {
+        return res.status(404).json({ error: 'Nota de crédito no encontrada' });
+      }
+
+      const empresa = await AppDataSource.getRepository(Empresa).findOne({
+        where: {},
+        order: { id: 'ASC' },
+      });
+
+      const numeroComprobante = `${nc.serie}-${nc.numero}`;
+      const notaRef = nc.notaPedido ? `${nc.notaPedido.serie}-${nc.notaPedido.numero}` : '-';
+      const pesos = (n: number | string | null | undefined) =>
+        `$ ${toNumber(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const contentW = right - left;
+      const top = doc.page.margins.top;
+
+      // ----- Encabezado -----
+      const headerH = 92;
+      const splitX = left + contentW * 0.56;
+      doc.save();
+      doc.roundedRect(left, top, contentW, headerH, 6).fill('#111827');
+      doc.restore();
+
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(16)
+        .text(empresa?.razonSocial || 'Mi empresa', left + 16, top + 13, { width: splitX - left - 24 });
+      const emisorInfo = [
+        [empresa?.cuit ? `CUIT ${empresa.cuit}` : null, empresa?.condicionIva].filter(Boolean).join(' · '),
+        empresa?.direccion,
+        [empresa?.codigoPostal, empresa?.localidad, empresa?.provincia].filter(Boolean).join(' '),
+        empresa?.telefono ? `Tel ${empresa.telefono}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#cbd5e1')
+        .text(emisorInfo, left + 16, top + 38, { width: splitX - left - 24, lineGap: 1.5 });
+
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text('NOTA DE CRÉDITO', splitX, top + 14, { width: right - splitX - 14, align: 'right' });
+      doc
+        .fontSize(21)
+        .text(`N° ${numeroComprobante}`, splitX, top + 30, { width: right - splitX - 14, align: 'right' });
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#cbd5e1')
+        .text(`s/ Nota de Pedido ${notaRef}`, splitX, top + 58, { width: right - splitX - 14, align: 'right' })
+        .text(`Fecha: ${formatDateLabel(nc.fecha)}`, splitX, top + 72, { width: right - splitX - 14, align: 'right' });
+
+      // ----- Caja de cliente -----
+      const clienteY = top + headerH + 18;
+      const clienteH = 60;
+      doc.save();
+      doc.roundedRect(left, clienteY, contentW, clienteH, 6).fillAndStroke('#f9fafb', '#e5e7eb');
+      doc.restore();
+      doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(8).text('CLIENTE', left + 14, clienteY + 10);
+      doc
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .text(nc.cliente?.nombre || '-', left + 14, clienteY + 22, { width: contentW - 28 });
+      const clienteInfo = [
+        nc.cliente?.numeroDocumento ? `${nc.cliente.tipoDocumento} ${nc.cliente.numeroDocumento}` : null,
+        nc.cliente?.localidad,
+      ]
+        .filter(Boolean)
+        .join('   ·   ');
+      doc.font('Helvetica').fontSize(9).fillColor('#374151').text(clienteInfo, left + 14, clienteY + 40, { width: contentW - 28 });
+
+      // ----- Detalle: ítems devueltos -----
+      doc.x = left;
+      doc.y = clienteY + clienteH + 18;
+      drawSectionTitle(doc, 'Ítems devueltos');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Cant.', x: 40, width: 40, align: 'center' },
+          { label: 'Descripción', x: 80, width: 250 },
+          { label: 'Identificación', x: 330, width: 80 },
+          { label: 'P. unit.', x: 410, width: 70, align: 'right' },
+          { label: 'Subtotal', x: 480, width: 75, align: 'right' },
+        ],
+        (nc.items ?? []).map((item) => [
+          String(item.cantidad),
+          truncateText(item.descripcion, 40),
+          item.tipoItem === 'queso' && item.plu ? `PLU ${item.plu}` : '-',
+          pesos(item.precioUnitario),
+          pesos(item.subtotal),
+        ])
+      );
+
+      // ----- Total -----
+      doc.moveDown(0.6);
+      const totalY = doc.y;
+      doc.save();
+      doc.roundedRect(right - 230, totalY, 230, 32, 5).fill('#111827');
+      doc.restore();
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text(`TOTAL   ${pesos(nc.montoTotal)}`, right - 230, totalY + 9, { width: 216, align: 'right' });
+      doc.y = totalY + 44;
+
+      if (nc.motivo) {
+        doc.fillColor('#6b7280').font('Helvetica').fontSize(9).text(`Motivo: ${nc.motivo}`, left, doc.y, { width: contentW });
+      }
+
+      doc
+        .fillColor('#9ca3af')
+        .font('Helvetica')
+        .fontSize(8)
+        .text('Documento no válido como factura · Comprobante interno de devolución', left, doc.page.height - 38, {
+          width: contentW,
+          align: 'center',
+        });
+
+      doc.end();
+      const buffer = await bufferPromise;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="nota_credito_${nc.serie}-${nc.numero}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

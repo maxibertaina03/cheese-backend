@@ -48,6 +48,12 @@ router.get(
   requirePermiso('facturacion'),
   ReportesController.exportReciboPdf.bind(ReportesController)
 );
+router.get(
+  '/export/nota-credito/:id/pdf',
+  auth,
+  requirePermiso('facturacion'),
+  ReportesController.exportNotaCreditoPdf.bind(ReportesController)
+);
 
 // Indumentaria (prendas)
 router.get(

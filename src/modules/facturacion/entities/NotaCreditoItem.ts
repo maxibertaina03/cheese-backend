@@ -1,39 +1,36 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { NotaPedido } from './NotaPedido';
-import { Producto } from '../../../entities/Producto';
-import { Elemento } from '../../../entities/Elemento';
+import { NotaCredito } from './NotaCredito';
+import { NotaPedidoItem } from './NotaPedidoItem';
 
 export type TipoItemNota = 'queso' | 'elemento';
 
-@Entity('notas_pedido_items')
-export class NotaPedidoItem {
+@Entity('notas_credito_items')
+export class NotaCreditoItem {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => NotaPedido, (nota) => nota.items, { nullable: false })
-  notaPedido!: NotaPedido;
+  @ManyToOne(() => NotaCredito, (nc) => nc.items, { nullable: false })
+  notaCredito!: NotaCredito;
 
   @Column()
-  notaPedidoId!: number;
+  notaCreditoId!: number;
+
+  // Ítem original de la nota de pedido que se devuelve (para controlar la sobre-devolución).
+  @ManyToOne(() => NotaPedidoItem, { nullable: false })
+  notaPedidoItem!: NotaPedidoItem;
+
+  @Column()
+  notaPedidoItemId!: number;
 
   @Column({ type: 'varchar', length: 20 })
   tipoItem!: TipoItemNota;
 
-  // Para quesos: el producto vendido (se descuenta del stock comercial por cantidad).
-  @ManyToOne(() => Producto, { nullable: true })
-  producto!: Producto | null;
-
   @Column({ type: 'int', nullable: true })
   productoId!: number | null;
-
-  // Para elementos: el elemento vendido.
-  @ManyToOne(() => Elemento, { nullable: true })
-  elemento!: Elemento | null;
 
   @Column({ type: 'int', nullable: true })
   elementoId!: number | null;
 
-  // Snapshots (se congelan al momento de la venta)
   @Column({ type: 'varchar', length: 250 })
   descripcion!: string;
 

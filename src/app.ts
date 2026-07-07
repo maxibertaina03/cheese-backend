@@ -25,6 +25,7 @@ import empresaRoutes from './modules/facturacion/routes/empresa.routes';
 import notaPedidoRoutes from './modules/facturacion/routes/nota-pedido.routes';
 import stockComercialRoutes from './modules/facturacion/routes/stock-comercial.routes';
 import reciboRoutes from './modules/facturacion/routes/recibo.routes';
+import notaCreditoRoutes from './modules/facturacion/routes/nota-credito.routes';
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
@@ -131,6 +132,7 @@ app.use('/api/empresa', empresaRoutes); // 🆕 facturación
 app.use('/api/notas-pedido', notaPedidoRoutes); // 🆕 facturación
 app.use('/api/facturacion/stock-comercial', stockComercialRoutes); // 🆕 facturación
 app.use('/api/recibos', reciboRoutes); // 🆕 facturación
+app.use('/api/notas-credito', notaCreditoRoutes); // 🆕 facturación
 
 app.use(errorHandler);
 

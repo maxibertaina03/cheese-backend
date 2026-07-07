@@ -140,6 +140,36 @@ const STATEMENTS: string[] = [
     "numeroNota" varchar(20),
     "monto" numeric(12,2) NOT NULL DEFAULT 0
   )`,
+
+  // --- Fase 4: notas de crédito (serie 3) ---
+  `INSERT INTO "secuencias_comprobante" ("tipo","prefijo","ultimoNumero")
+    VALUES (3,'3',0) ON CONFLICT ("tipo") DO NOTHING`,
+  `CREATE TABLE IF NOT EXISTS "notas_credito" (
+    "id" SERIAL PRIMARY KEY,
+    "serie" varchar(10) NOT NULL DEFAULT '3',
+    "numero" integer NOT NULL,
+    "notaPedidoId" integer NOT NULL,
+    "clienteId" integer NOT NULL,
+    "montoTotal" numeric(12,2) NOT NULL DEFAULT 0,
+    "motivo" text,
+    "fecha" TIMESTAMP NOT NULL DEFAULT now(),
+    "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+    "deletedAt" TIMESTAMP,
+    "creadoPorId" integer
+  )`,
+  `CREATE TABLE IF NOT EXISTS "notas_credito_items" (
+    "id" SERIAL PRIMARY KEY,
+    "notaCreditoId" integer NOT NULL,
+    "notaPedidoItemId" integer NOT NULL,
+    "tipoItem" varchar(20) NOT NULL,
+    "productoId" integer,
+    "elementoId" integer,
+    "descripcion" varchar(250) NOT NULL,
+    "plu" varchar(20),
+    "cantidad" integer NOT NULL DEFAULT 1,
+    "precioUnitario" numeric(12,2) NOT NULL DEFAULT 0,
+    "subtotal" numeric(12,2) NOT NULL DEFAULT 0
+  )`,
 ];
 
 export async function ensureSchema(dataSource: DataSource): Promise<void> {
