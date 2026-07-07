@@ -42,6 +42,12 @@ router.get(
   requirePermiso('facturacion'),
   ReportesController.exportNotaPedidoPdf.bind(ReportesController)
 );
+router.get(
+  '/export/recibo/:id/pdf',
+  auth,
+  requirePermiso('facturacion'),
+  ReportesController.exportReciboPdf.bind(ReportesController)
+);
 
 // Indumentaria (prendas)
 router.get(

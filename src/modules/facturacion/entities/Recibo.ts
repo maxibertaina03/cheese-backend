@@ -10,16 +10,17 @@ import {
 } from 'typeorm';
 import { Cliente } from './Cliente';
 import { Usuario } from '../../../entities/Usuario';
-import { NotaPedidoItem } from './NotaPedidoItem';
+import { ReciboAplicacion } from './ReciboAplicacion';
 
-export type EstadoNotaPedido = 'confirmada' | 'pagada_parcial' | 'pagada_total' | 'anulada';
+export type MedioPago = 'efectivo' | 'transferencia';
 
-@Entity('notas_pedido')
-export class NotaPedido {
+// Recibo (serie 2): registra el cobro de una o varias notas de pedido de un cliente.
+@Entity('recibos')
+export class Recibo {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'varchar', length: 10, default: '1' })
+  @Column({ type: 'varchar', length: 10, default: '2' })
   serie!: string;
 
   @Column({ type: 'int' })
@@ -32,19 +33,16 @@ export class NotaPedido {
   clienteId!: number;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
-  total!: number;
+  montoTotal!: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
-  saldoPendiente!: number;
-
-  @Column({ type: 'varchar', length: 20, default: 'confirmada' })
-  estado!: EstadoNotaPedido;
+  @Column({ type: 'varchar', length: 20 })
+  medioPago!: MedioPago;
 
   @Column({ type: 'text', nullable: true })
   observaciones!: string | null;
 
-  @OneToMany(() => NotaPedidoItem, (item) => item.notaPedido)
-  items!: NotaPedidoItem[];
+  @OneToMany(() => ReciboAplicacion, (aplicacion) => aplicacion.recibo)
+  aplicaciones!: ReciboAplicacion[];
 
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;

@@ -14,6 +14,8 @@ import { NotaPedidoItem } from '../modules/facturacion/entities/NotaPedidoItem';
 import { SecuenciaComprobante } from '../modules/facturacion/entities/SecuenciaComprobante';
 import { StockComercial } from '../modules/facturacion/entities/StockComercial';
 import { MovimientoStockComercial } from '../modules/facturacion/entities/MovimientoStockComercial';
+import { Recibo } from '../modules/facturacion/entities/Recibo';
+import { ReciboAplicacion } from '../modules/facturacion/entities/ReciboAplicacion';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
@@ -57,6 +59,8 @@ export const AppDataSource = new DataSource({
     NotaPedidoItem,
     StockComercial,
     MovimientoStockComercial,
+    Recibo,
+    ReciboAplicacion,
   ],
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });

@@ -7,6 +7,7 @@ import { Indumentaria } from '../entities/Indumentaria';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 import { Empresa } from '../modules/facturacion/entities/Empresa';
 import { NotaPedido } from '../modules/facturacion/entities/NotaPedido';
+import { Recibo } from '../modules/facturacion/entities/Recibo';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
@@ -1311,6 +1312,169 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="nota_pedido_${nota.serie}-${nota.numero}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportReciboPdf(req: AuthRequest, res: Response) {
+    try {
+      const recibo = await AppDataSource.getRepository(Recibo).findOne({
+        where: { id: Number(req.params.id) },
+        relations: ['cliente', 'aplicaciones'],
+      });
+
+      if (!recibo) {
+        return res.status(404).json({ error: 'Recibo no encontrado' });
+      }
+
+      const empresa = await AppDataSource.getRepository(Empresa).findOne({
+        where: {},
+        order: { id: 'ASC' },
+      });
+
+      const numeroComprobante = `${recibo.serie}-${recibo.numero}`;
+      const pesos = (n: number | string | null | undefined) =>
+        `$ ${toNumber(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const medioLabel = recibo.medioPago === 'transferencia' ? 'Transferencia' : 'Efectivo';
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const contentW = right - left;
+      const top = doc.page.margins.top;
+
+      // ----- Encabezado -----
+      const headerH = 86;
+      const splitX = left + contentW * 0.58;
+      doc.save();
+      doc.roundedRect(left, top, contentW, headerH, 6).fill('#111827');
+      doc.restore();
+
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(16)
+        .text(empresa?.razonSocial || 'Mi empresa', left + 16, top + 13, { width: splitX - left - 24 });
+      const emisorInfo = [
+        [empresa?.cuit ? `CUIT ${empresa.cuit}` : null, empresa?.condicionIva].filter(Boolean).join(' · '),
+        empresa?.direccion,
+        [empresa?.codigoPostal, empresa?.localidad, empresa?.provincia].filter(Boolean).join(' '),
+        empresa?.telefono ? `Tel ${empresa.telefono}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#cbd5e1')
+        .text(emisorInfo, left + 16, top + 38, { width: splitX - left - 24, lineGap: 1.5 });
+
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text('RECIBO', splitX, top + 16, { width: right - splitX - 14, align: 'right' });
+      doc
+        .fontSize(22)
+        .text(`N° ${numeroComprobante}`, splitX, top + 32, { width: right - splitX - 14, align: 'right' });
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#cbd5e1')
+        .text(`Fecha: ${formatDateLabel(recibo.fecha)}`, splitX, top + 62, {
+          width: right - splitX - 14,
+          align: 'right',
+        });
+
+      // ----- Caja de cliente -----
+      const clienteY = top + headerH + 18;
+      const clienteH = 60;
+      doc.save();
+      doc.roundedRect(left, clienteY, contentW, clienteH, 6).fillAndStroke('#f9fafb', '#e5e7eb');
+      doc.restore();
+      doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(8).text('RECIBÍ DE', left + 14, clienteY + 10);
+      doc
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .text(recibo.cliente?.nombre || '-', left + 14, clienteY + 22, { width: contentW - 28 });
+      const clienteInfo = [
+        recibo.cliente?.numeroDocumento ? `${recibo.cliente.tipoDocumento} ${recibo.cliente.numeroDocumento}` : null,
+        recibo.cliente?.localidad,
+      ]
+        .filter(Boolean)
+        .join('   ·   ');
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#374151')
+        .text(clienteInfo, left + 14, clienteY + 40, { width: contentW - 28 });
+
+      // ----- Frase + medio de pago -----
+      doc.x = left;
+      doc.y = clienteY + clienteH + 16;
+      doc
+        .font('Helvetica')
+        .fontSize(11)
+        .fillColor('#111827')
+        .text(`Recibí la suma de ${pesos(recibo.montoTotal)} en concepto de pago, mediante ${medioLabel}.`, left, doc.y, {
+          width: contentW,
+        });
+
+      // ----- Detalle: notas pagadas -----
+      doc.y += 6;
+      drawSectionTitle(doc, 'Comprobantes cancelados');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Nota de pedido', x: 40, width: 300 },
+          { label: 'Monto aplicado', x: 340, width: 215, align: 'right' },
+        ],
+        (recibo.aplicaciones ?? []).map((ap) => [
+          `Nota ${ap.numeroNota ?? ''}`,
+          pesos(ap.monto),
+        ])
+      );
+
+      // ----- Total -----
+      doc.moveDown(0.6);
+      const totalY = doc.y;
+      doc.save();
+      doc.roundedRect(right - 230, totalY, 230, 32, 5).fill('#111827');
+      doc.restore();
+      doc
+        .fillColor('#ffffff')
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text(`TOTAL   ${pesos(recibo.montoTotal)}`, right - 230, totalY + 9, { width: 216, align: 'right' });
+      doc.y = totalY + 44;
+
+      if (recibo.observaciones) {
+        doc
+          .fillColor('#6b7280')
+          .font('Helvetica')
+          .fontSize(9)
+          .text(`Observaciones: ${recibo.observaciones}`, left, doc.y, { width: contentW });
+      }
+
+      doc
+        .fillColor('#9ca3af')
+        .font('Helvetica')
+        .fontSize(8)
+        .text('Documento no válido como factura · Comprobante interno de cobro', left, doc.page.height - 38, {
+          width: contentW,
+          align: 'center',
+        });
+
+      doc.end();
+      const buffer = await bufferPromise;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="recibo_${recibo.serie}-${recibo.numero}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

@@ -116,6 +116,30 @@ const STATEMENTS: string[] = [
     "creadoPorId" integer,
     "createdAt" TIMESTAMP NOT NULL DEFAULT now()
   )`,
+
+  // --- Fase 3: recibos (serie 2) ---
+  `INSERT INTO "secuencias_comprobante" ("tipo","prefijo","ultimoNumero")
+    VALUES (2,'2',0) ON CONFLICT ("tipo") DO NOTHING`,
+  `CREATE TABLE IF NOT EXISTS "recibos" (
+    "id" SERIAL PRIMARY KEY,
+    "serie" varchar(10) NOT NULL DEFAULT '2',
+    "numero" integer NOT NULL,
+    "clienteId" integer NOT NULL,
+    "montoTotal" numeric(12,2) NOT NULL DEFAULT 0,
+    "medioPago" varchar(20) NOT NULL,
+    "observaciones" text,
+    "fecha" TIMESTAMP NOT NULL DEFAULT now(),
+    "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+    "deletedAt" TIMESTAMP,
+    "creadoPorId" integer
+  )`,
+  `CREATE TABLE IF NOT EXISTS "recibos_aplicaciones" (
+    "id" SERIAL PRIMARY KEY,
+    "reciboId" integer NOT NULL,
+    "notaPedidoId" integer NOT NULL,
+    "numeroNota" varchar(20),
+    "monto" numeric(12,2) NOT NULL DEFAULT 0
+  )`,
 ];
 
 export async function ensureSchema(dataSource: DataSource): Promise<void> {
