@@ -94,6 +94,28 @@ const STATEMENTS: string[] = [
     "unidadId" integer,
     "elementoId" integer
   )`,
+  // Ítems de nota de pedido ahora referencian el producto (venta por cantidad)
+  'ALTER TABLE "notas_pedido_items" ADD COLUMN IF NOT EXISTS "productoId" integer',
+
+  // --- Stock comercial (facturación, por cantidad) ---
+  `CREATE TABLE IF NOT EXISTS "stock_comercial" (
+    "id" SERIAL PRIMARY KEY,
+    "productoId" integer NOT NULL UNIQUE,
+    "cantidadDisponible" integer NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "movimientos_stock_comercial" (
+    "id" SERIAL PRIMARY KEY,
+    "productoId" integer NOT NULL,
+    "tipo" varchar(20) NOT NULL,
+    "cantidad" integer NOT NULL,
+    "stockAnterior" integer NOT NULL,
+    "stockNuevo" integer NOT NULL,
+    "referencia" varchar(60),
+    "observaciones" text,
+    "creadoPorId" integer,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT now()
+  )`,
 ];
 
 export async function ensureSchema(dataSource: DataSource): Promise<void> {

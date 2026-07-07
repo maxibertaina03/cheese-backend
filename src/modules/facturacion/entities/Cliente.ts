@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { Usuario } from './Usuario';
+import { Usuario } from '../../../entities/Usuario';
 
 @Entity('clientes')
 export class Cliente {

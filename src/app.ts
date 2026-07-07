@@ -19,9 +19,11 @@ import stockElementoRoutes from './routes/stock-elemento.routes'; // 🆕
 import tipoElementoRoutes from './routes/tipo-elemento.routes'; // 🆕
 import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
 import proveedorRoutes from './routes/proveedor.routes'; // 🆕
-import clienteRoutes from './routes/cliente.routes'; // 🆕 facturación
-import empresaRoutes from './routes/empresa.routes'; // 🆕 facturación
-import notaPedidoRoutes from './routes/nota-pedido.routes'; // 🆕 facturación
+// Módulo Facturación (bounded context)
+import clienteRoutes from './modules/facturacion/routes/cliente.routes';
+import empresaRoutes from './modules/facturacion/routes/empresa.routes';
+import notaPedidoRoutes from './modules/facturacion/routes/nota-pedido.routes';
+import stockComercialRoutes from './modules/facturacion/routes/stock-comercial.routes';
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
@@ -126,6 +128,7 @@ app.use('/api/proveedores', proveedorRoutes); // 🆕
 app.use('/api/clientes', clienteRoutes); // 🆕 facturación
 app.use('/api/empresa', empresaRoutes); // 🆕 facturación
 app.use('/api/notas-pedido', notaPedidoRoutes); // 🆕 facturación
+app.use('/api/facturacion/stock-comercial', stockComercialRoutes); // 🆕 facturación
 
 app.use(errorHandler);
 

@@ -3,10 +3,10 @@ import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../config/database';
-import { Empresa } from '../entities/Empresa';
 import { Indumentaria } from '../entities/Indumentaria';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
-import { NotaPedido } from '../entities/NotaPedido';
+import { Empresa } from '../modules/facturacion/entities/Empresa';
+import { NotaPedido } from '../modules/facturacion/entities/NotaPedido';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
@@ -1258,16 +1258,7 @@ export class ReportesController {
           { label: 'Subtotal', x: 480, width: 75, align: 'right' },
         ],
         (nota.items ?? []).map((item) => {
-          const identificacion =
-            item.tipoItem === 'queso'
-              ? [
-                  item.plu ? `PLU ${item.plu}` : null,
-                  item.pesoGramos != null ? formatKgLabel(item.pesoGramos) : null,
-                  item.fechaElaboracion ? `elab ${formatDateLabel(item.fechaElaboracion)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : '-';
+          const identificacion = item.tipoItem === 'queso' && item.plu ? `PLU ${item.plu}` : '-';
           return [
             String(item.cantidad),
             truncateText(item.descripcion, 34),

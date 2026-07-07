@@ -18,13 +18,15 @@ export class NotaPedidoItemDto {
   @IsIn(['queso', 'elemento'])
   tipoItem!: 'queso' | 'elemento';
 
+  // Para queso: id del producto (se descuenta del stock comercial por cantidad).
   @Transform(nullToUndefined)
   @Type(() => Number)
   @IsOptional()
   @IsInt()
   @Min(1)
-  unidadId?: number;
+  productoId?: number;
 
+  // Para elemento: id del elemento.
   @Transform(nullToUndefined)
   @Type(() => Number)
   @IsOptional()
@@ -32,12 +34,10 @@ export class NotaPedidoItemDto {
   @Min(1)
   elementoId?: number;
 
-  @Transform(nullToUndefined)
   @Type(() => Number)
-  @IsOptional()
   @IsInt()
   @Min(1)
-  cantidad?: number;
+  cantidad!: number;
 }
 
 export class CreateNotaPedidoDto {

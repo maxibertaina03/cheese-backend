@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Empresa } from '../entities/Empresa';
-import { AuthRequest } from '../middlewares/auth';
+import { AuthRequest } from '../../../middlewares/auth';
 
 // La empresa es una configuración única (singleton): siempre se trabaja con la
 // primera fila. GET la devuelve (o null si no existe) y PUT hace upsert.

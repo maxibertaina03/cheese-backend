@@ -1,12 +1,7 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { NotaPedido } from './NotaPedido';
-import { Unidad } from './Unidad';
-import { Elemento } from './Elemento';
+import { Producto } from '../../../entities/Producto';
+import { Elemento } from '../../../entities/Elemento';
 
 export type TipoItemNota = 'queso' | 'elemento';
 
@@ -21,12 +16,19 @@ export class NotaPedidoItem {
   @Column({ type: 'varchar', length: 20 })
   tipoItem!: TipoItemNota;
 
-  // Para quesos: la unidad física vendida. Para elementos: el elemento.
-  @ManyToOne(() => Unidad, { nullable: true })
-  unidad!: Unidad | null;
+  // Para quesos: el producto vendido (se descuenta del stock comercial por cantidad).
+  @ManyToOne(() => Producto, { nullable: true })
+  producto!: Producto | null;
 
+  @Column({ type: 'int', nullable: true })
+  productoId!: number | null;
+
+  // Para elementos: el elemento vendido.
   @ManyToOne(() => Elemento, { nullable: true })
   elemento!: Elemento | null;
+
+  @Column({ type: 'int', nullable: true })
+  elementoId!: number | null;
 
   // Snapshots (se congelan al momento de la venta)
   @Column({ type: 'varchar', length: 250 })
@@ -34,12 +36,6 @@ export class NotaPedidoItem {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   plu!: string | null;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  pesoGramos!: number | null;
-
-  @Column({ type: 'date', nullable: true })
-  fechaElaboracion!: string | null;
 
   @Column({ type: 'int', default: 1 })
   cantidad!: number;

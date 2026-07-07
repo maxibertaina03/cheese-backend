@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { NotaPedidoController } from '../controllers/nota-pedido.controller';
 import { CreateNotaPedidoDto, NotaPedidoIdParamDto } from '../dtos/nota-pedido.dto';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { validateDto } from '../middlewares/validation.middleware';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { validateDto } from '../../../middlewares/validation.middleware';
 
 const router = Router();
 

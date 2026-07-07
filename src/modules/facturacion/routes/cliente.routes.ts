@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { ClienteController } from '../controllers/cliente.controller';
 import { ClienteIdParamDto, CreateClienteDto, UpdateClienteDto } from '../dtos/cliente.dto';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { validateDto } from '../middlewares/validation.middleware';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { validateDto } from '../../../middlewares/validation.middleware';
 
 const router = Router();
 

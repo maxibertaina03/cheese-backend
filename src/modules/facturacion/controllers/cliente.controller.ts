@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Cliente } from '../entities/Cliente';
-import { Usuario } from '../entities/Usuario';
-import { AuthRequest } from '../middlewares/auth';
+import { Usuario } from '../../../entities/Usuario';
+import { AuthRequest } from '../../../middlewares/auth';
 
 export class ClienteController {
   static async getAll(_req: AuthRequest, res: Response) {

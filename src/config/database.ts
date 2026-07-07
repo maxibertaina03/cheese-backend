@@ -1,16 +1,19 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { Cliente } from '../entities/Cliente';
 import { Elemento } from '../entities/Elemento';
-import { Empresa } from '../entities/Empresa';
 import { Indumentaria } from '../entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
 import { MovimientoElemento } from '../entities/MovimientoElemento';
-import { NotaPedido } from '../entities/NotaPedido';
-import { NotaPedidoItem } from '../entities/NotaPedidoItem';
-import { SecuenciaComprobante } from '../entities/SecuenciaComprobante';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
+// Módulo Facturación (bounded context)
+import { Cliente } from '../modules/facturacion/entities/Cliente';
+import { Empresa } from '../modules/facturacion/entities/Empresa';
+import { NotaPedido } from '../modules/facturacion/entities/NotaPedido';
+import { NotaPedidoItem } from '../modules/facturacion/entities/NotaPedidoItem';
+import { SecuenciaComprobante } from '../modules/facturacion/entities/SecuenciaComprobante';
+import { StockComercial } from '../modules/facturacion/entities/StockComercial';
+import { MovimientoStockComercial } from '../modules/facturacion/entities/MovimientoStockComercial';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
@@ -52,6 +55,8 @@ export const AppDataSource = new DataSource({
     SecuenciaComprobante,
     NotaPedido,
     NotaPedidoItem,
+    StockComercial,
+    MovimientoStockComercial,
   ],
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
