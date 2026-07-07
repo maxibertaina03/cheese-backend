@@ -1088,9 +1088,9 @@ export class ReportesController {
 
       drawReportHeader(doc, 'Stock al lunes', `Las Tres Estrellas | Stock al ${fechaLabel}`);
       drawSummaryCards(doc, [
-        { label: 'Total de quesos', value: String(data.totalUnidades) },
-        { label: 'Productos distintos', value: String(data.productos.length) },
-        { label: 'Movimientos desde el lunes', value: String(data.movimientos.length) },
+        { label: 'Stock físico (hormas)', value: String(data.totalFisico) },
+        { label: 'Stock comercial (venta)', value: String(data.totalComercial) },
+        { label: 'Productos', value: String(data.productos.length) },
         { label: 'Fecha de corte', value: fechaLabel },
       ]);
 
@@ -1098,11 +1098,17 @@ export class ReportesController {
       this.drawSimpleTable(
         doc,
         [
-          { label: 'Producto', x: 40, width: 250 },
-          { label: 'Tipo', x: 290, width: 130 },
-          { label: 'Cantidad', x: 420, width: 135, align: 'right' },
+          { label: 'Producto', x: 40, width: 230 },
+          { label: 'Tipo', x: 270, width: 110 },
+          { label: 'Físico', x: 380, width: 85, align: 'right' },
+          { label: 'Comercial', x: 465, width: 90, align: 'right' },
         ],
-        data.productos.map((row) => [row.producto, textOrDash(row.tipoQueso), String(row.cantidad)])
+        data.productos.map((row) => [
+          row.producto,
+          textOrDash(row.tipoQueso),
+          String(row.cantidadFisico),
+          String(row.cantidadComercial),
+        ])
       );
 
       drawSectionTitle(doc, 'Lo que salió o se cortó desde el lunes');

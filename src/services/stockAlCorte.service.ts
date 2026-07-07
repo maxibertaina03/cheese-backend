@@ -1,12 +1,15 @@
 import { AppDataSource } from '../config/database';
+import { Producto } from '../entities/Producto';
 import { Unidad } from '../entities/Unidad';
+import { MovimientoStockComercial } from '../modules/facturacion/entities/MovimientoStockComercial';
 
 export interface StockLunesProducto {
   productoId: number;
   producto: string;
   plu: string;
   tipoQueso: string | null;
-  cantidad: number;
+  cantidadFisico: number;    // hormas físicas (pistola) en stock ese lunes
+  cantidadComercial: number; // stock de venta (facturación) ese lunes
 }
 
 export interface MovimientoDesdeCorte {
@@ -22,7 +25,8 @@ export interface MovimientoDesdeCorte {
 
 export interface StockAlCorteResult {
   fechaCorte: string;
-  totalUnidades: number;
+  totalFisico: number;
+  totalComercial: number;
   productos: StockLunesProducto[];
   movimientos: MovimientoDesdeCorte[];
 }
@@ -59,10 +63,26 @@ export async function computeStockAlCorte(corte: Date, ahora: Date = new Date())
 
   const productos = new Map<number, StockLunesProducto>();
   const movimientos: MovimientoDesdeCorte[] = [];
-  let totalUnidades = 0;
+  let totalFisico = 0;
 
   const corteMs = corte.getTime();
   const ahoraMs = ahora.getTime();
+
+  const getGrupo = (prod: { id: number; nombre: string; plu: string; tipoQueso?: { nombre: string } | null }) => {
+    let g = productos.get(prod.id);
+    if (!g) {
+      g = {
+        productoId: prod.id,
+        producto: prod.nombre,
+        plu: prod.plu,
+        tipoQueso: prod.tipoQueso?.nombre ?? null,
+        cantidadFisico: 0,
+        cantidadComercial: 0,
+      };
+      productos.set(prod.id, g);
+    }
+    return g;
+  };
 
   for (const unidad of unidades) {
     // Aún no existía en la fecha de corte.
@@ -89,18 +109,10 @@ export async function computeStockAlCorte(corte: Date, ahora: Date = new Date())
     }
 
     // --- La unidad estaba en stock el lunes: la contamos por producto ---
-    totalUnidades += 1;
+    totalFisico += 1;
     const prod = unidad.producto;
     if (prod) {
-      const grupo = productos.get(prod.id) || {
-        productoId: prod.id,
-        producto: prod.nombre,
-        plu: prod.plu,
-        tipoQueso: prod.tipoQueso?.nombre ?? null,
-        cantidad: 0,
-      };
-      grupo.cantidad += 1;
-      productos.set(prod.id, grupo);
+      getGrupo(prod).cantidadFisico += 1;
     }
 
     // --- Movimientos de ESTA unidad desde el corte hasta ahora ---
@@ -144,15 +156,50 @@ export async function computeStockAlCorte(corte: Date, ahora: Date = new Date())
     }
   }
 
-  const productosArr = Array.from(productos.values()).sort((a, b) =>
-    a.producto.localeCompare(b.producto, 'es')
-  );
+  // --- Stock comercial (facturación) reconstruido a la fecha de corte ---
+  // La cantidad en el corte es el stockNuevo del último movimiento con fecha <= corte
+  // (o 0 si no hubo movimientos antes). Se apoya en el historial de movimientos.
+  const movsComerciales = await AppDataSource.getRepository(MovimientoStockComercial).find({
+    order: { createdAt: 'ASC' },
+  });
+  const comercialPorProducto = new Map<number, number>();
+  for (const mov of movsComerciales) {
+    if (new Date(mov.createdAt).getTime() <= corteMs) {
+      comercialPorProducto.set(mov.productoId, Number(mov.stockNuevo));
+    }
+  }
+
+  let totalComercial = 0;
+  if (comercialPorProducto.size > 0) {
+    const productosInfo = await AppDataSource.getRepository(Producto).find({ relations: ['tipoQueso'] });
+    const infoPorId = new Map(productosInfo.map((p) => [p.id, p]));
+    for (const [productoId, cantidad] of comercialPorProducto) {
+      if (cantidad <= 0) {
+        continue;
+      }
+      totalComercial += cantidad;
+      const info = infoPorId.get(productoId);
+      if (info) {
+        getGrupo(info).cantidadComercial = cantidad;
+      } else {
+        const g = productos.get(productoId);
+        if (g) {
+          g.cantidadComercial = cantidad;
+        }
+      }
+    }
+  }
+
+  const productosArr = Array.from(productos.values())
+    .filter((p) => p.cantidadFisico > 0 || p.cantidadComercial > 0)
+    .sort((a, b) => a.producto.localeCompare(b.producto, 'es'));
 
   movimientos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
   return {
     fechaCorte: corte.toISOString(),
-    totalUnidades,
+    totalFisico,
+    totalComercial,
     productos: productosArr,
     movimientos,
   };
