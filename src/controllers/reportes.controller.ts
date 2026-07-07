@@ -9,6 +9,7 @@ import { Empresa } from '../modules/facturacion/entities/Empresa';
 import { NotaPedido } from '../modules/facturacion/entities/NotaPedido';
 import { NotaCredito } from '../modules/facturacion/entities/NotaCredito';
 import { Recibo } from '../modules/facturacion/entities/Recibo';
+import { computeReporte } from '../modules/facturacion/services/reporte-facturacion.service';
 import { Particion } from '../entities/Particion';
 import { Unidad } from '../entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
@@ -1625,6 +1626,69 @@ export class ReportesController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="nota_credito_${nc.serie}-${nc.numero}.pdf"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async exportReporteFacturacionPdf(req: AuthRequest, res: Response) {
+    try {
+      const desde = typeof req.query.desde === 'string' ? req.query.desde : undefined;
+      const hasta = typeof req.query.hasta === 'string' ? req.query.hasta : undefined;
+      const data = await computeReporte(desde, hasta);
+
+      const pesos = (n: number | string | null | undefined) =>
+        `$ ${toNumber(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const periodoLabel =
+        data.periodo.desde && data.periodo.hasta ? `${data.periodo.desde} a ${data.periodo.hasta}` : 'Histórico';
+
+      const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true });
+      const bufferPromise = buildPdfBuffer(doc);
+
+      drawReportHeader(doc, 'Reporte de ventas', `Las Tres Estrellas | Período: ${periodoLabel}`);
+      drawSummaryCards(doc, [
+        { label: 'Facturado', value: pesos(data.resumen.totalFacturado) },
+        { label: 'Cobrado', value: pesos(data.resumen.totalCobrado) },
+        { label: 'Notas de crédito', value: pesos(data.resumen.totalCreditado) },
+        { label: 'Saldo pendiente (hoy)', value: pesos(data.resumen.saldoPendienteTotal) },
+      ]);
+
+      drawSectionTitle(doc, `Ventas por producto (${periodoLabel})`);
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Producto / Ítem', x: 40, width: 320 },
+          { label: 'Cantidad', x: 360, width: 90, align: 'right' },
+          { label: 'Monto', x: 450, width: 105, align: 'right' },
+        ],
+        data.ventasPorProducto.map((v) => [truncateText(v.descripcion, 48), String(v.cantidad), pesos(v.monto)])
+      );
+
+      drawSectionTitle(doc, 'Cuenta corriente (saldo actual por cliente)');
+      this.drawSimpleTable(
+        doc,
+        [
+          { label: 'Cliente', x: 40, width: 235 },
+          { label: 'Facturado', x: 275, width: 95, align: 'right' },
+          { label: 'Cobrado', x: 370, width: 90, align: 'right' },
+          { label: 'Saldo', x: 460, width: 95, align: 'right' },
+        ],
+        data.cuentaCorriente.map((c) => [
+          truncateText(c.cliente, 34),
+          pesos(c.facturado),
+          pesos(c.cobrado),
+          pesos(c.saldo),
+        ])
+      );
+
+      drawPdfFooter(doc);
+      doc.end();
+      const buffer = await bufferPromise;
+      const fileSuffix = data.periodo.desde && data.periodo.hasta ? `${data.periodo.desde}_${data.periodo.hasta}` : 'historico';
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="reporte_ventas_${fileSuffix}.pdf"`);
       res.send(buffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
