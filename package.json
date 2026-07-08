@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "ts-node-dev src/seed.ts",
+    "limpiar-facturacion": "node dist/scripts/limpiar-facturacion.js",
     "test": "npm run build && node tests/run-tests.js"
   },
   "keywords": [],
