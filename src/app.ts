@@ -27,6 +27,7 @@ import stockComercialRoutes from './modules/facturacion/routes/stock-comercial.r
 import reciboRoutes from './modules/facturacion/routes/recibo.routes';
 import notaCreditoRoutes from './modules/facturacion/routes/nota-credito.routes';
 import reporteFacturacionRoutes from './modules/facturacion/routes/reporte-facturacion.routes';
+import mantenimientoRoutes from './modules/facturacion/routes/mantenimiento.routes';
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
@@ -135,6 +136,7 @@ app.use('/api/facturacion/stock-comercial', stockComercialRoutes); // 🆕 factu
 app.use('/api/recibos', reciboRoutes); // 🆕 facturación
 app.use('/api/notas-credito', notaCreditoRoutes); // 🆕 facturación
 app.use('/api/facturacion/reporte', reporteFacturacionRoutes); // 🆕 facturación
+app.use('/api/facturacion/mantenimiento', mantenimientoRoutes); // 🆕 facturación (admin)
 
 app.use(errorHandler);
 

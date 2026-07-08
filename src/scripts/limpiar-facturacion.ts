@@ -8,23 +8,7 @@
 //   node dist/scripts/limpiar-facturacion.js --confirmar
 // ============================================
 import { AppDataSource } from '../config/database';
-
-// Orden: primero las tablas "hijas". No hay FKs, pero se respeta por prolijidad.
-const sentencias = [
-  'DELETE FROM "notas_credito_items"',
-  'DELETE FROM "notas_credito"',
-  'DELETE FROM "recibos_pagos"',
-  'DELETE FROM "recibos_aplicaciones"',
-  'DELETE FROM "recibos"',
-  'DELETE FROM "notas_pedido_items"',
-  'DELETE FROM "notas_pedido"',
-  'DELETE FROM "movimientos_stock_comercial"',
-  'DELETE FROM "stock_comercial"',
-  // Reiniciar la numeración de comprobantes (vuelven a arrancar en 1)
-  'UPDATE "secuencias_comprobante" SET "ultimoNumero" = 0',
-  // Reactivar quesos físicos que hayan quedado marcados como vendidos en pruebas viejas
-  'UPDATE "unidades" SET "activa" = true, "fechaVenta" = NULL WHERE "fechaVenta" IS NOT NULL',
-];
+import { limpiarTransaccionesFacturacion } from '../modules/facturacion/services/limpiar.service';
 
 async function limpiarFacturacion() {
   if (!process.argv.includes('--confirmar')) {
@@ -42,14 +26,7 @@ async function limpiarFacturacion() {
   }
 
   console.log('🧹 Limpiando transacciones de facturación...');
-  for (const sql of sentencias) {
-    try {
-      await AppDataSource.query(sql);
-      console.log('✅', sql);
-    } catch (error: any) {
-      console.error('⚠️  Se ignora (posible tabla inexistente):', sql, '-', error.message);
-    }
-  }
+  await limpiarTransaccionesFacturacion(AppDataSource);
   console.log('🎉 Listo. Facturación limpia; clientes y proveedores intactos.');
 }
 
