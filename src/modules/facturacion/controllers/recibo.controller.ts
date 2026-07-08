@@ -6,6 +6,7 @@ import { Cliente } from '../entities/Cliente';
 import { NotaPedido } from '../entities/NotaPedido';
 import { Recibo } from '../entities/Recibo';
 import { ReciboAplicacion } from '../entities/ReciboAplicacion';
+import { ReciboPago } from '../entities/ReciboPago';
 import { SecuenciaComprobante } from '../entities/SecuenciaComprobante';
 
 const TIPO_RECIBO = 2;
@@ -37,7 +38,7 @@ export class ReciboController {
     try {
       const recibo = await AppDataSource.getRepository(Recibo).findOne({
         where: { id: Number(req.params.id) },
-        relations: ['cliente', 'aplicaciones', 'aplicaciones.notaPedido'],
+        relations: ['cliente', 'aplicaciones', 'aplicaciones.notaPedido', 'pagos'],
       });
       if (!recibo) {
         return res.status(404).json({ error: 'Recibo no encontrado' });
@@ -50,21 +51,26 @@ export class ReciboController {
 
   static async create(req: AuthRequest, res: Response) {
     try {
-      const { clienteId, medioPago, observaciones, aplicaciones } = req.body as {
+      const { clienteId, observaciones, aplicaciones, pagos } = req.body as {
         clienteId?: number;
-        medioPago?: 'efectivo' | 'transferencia';
         observaciones?: string | null;
         aplicaciones?: Array<{ notaPedidoId: number; monto: number }>;
+        pagos?: Array<{ medio: 'efectivo' | 'transferencia'; monto: number }>;
       };
 
       if (!clienteId) {
         return res.status(400).json({ error: 'El cliente es obligatorio' });
       }
-      if (medioPago !== 'efectivo' && medioPago !== 'transferencia') {
-        return res.status(400).json({ error: 'Medio de pago inválido' });
-      }
       if (!Array.isArray(aplicaciones) || aplicaciones.length === 0) {
         return res.status(400).json({ error: 'El recibo debe aplicarse al menos a una nota' });
+      }
+      if (!Array.isArray(pagos) || pagos.length === 0) {
+        return res.status(400).json({ error: 'Indicá al menos una forma de pago' });
+      }
+      for (const p of pagos) {
+        if ((p.medio !== 'efectivo' && p.medio !== 'transferencia') || Number(p.monto) <= 0) {
+          return res.status(400).json({ error: 'Forma de pago inválida' });
+        }
       }
 
       const result = await AppDataSource.transaction(async (manager) => {
@@ -134,6 +140,15 @@ export class ReciboController {
 
         const montoRedondeado = Math.round(montoTotal * 100) / 100;
 
+        // Las formas de pago deben sumar exactamente lo aplicado a las notas.
+        const totalPagos = Math.round((pagos as Array<{ monto: number }>).reduce((s, p) => s + Number(p.monto), 0) * 100) / 100;
+        if (Math.abs(totalPagos - montoRedondeado) > 0.01) {
+          return fail(400, `Las formas de pago (${totalPagos.toFixed(2)}) no coinciden con el total a cobrar (${montoRedondeado.toFixed(2)})`);
+        }
+
+        const medios = new Set((pagos as Array<{ medio: string }>).map((p) => p.medio));
+        const medioPagoRecibo = medios.size > 1 ? 'mixto' : (pagos as Array<{ medio: 'efectivo' | 'transferencia' }>)[0].medio;
+
         const reciboRepo = manager.getRepository(Recibo);
         const recibo = reciboRepo.create({
           serie: sec.prefijo,
@@ -141,7 +156,7 @@ export class ReciboController {
           cliente,
           clienteId,
           montoTotal: montoRedondeado,
-          medioPago,
+          medioPago: medioPagoRecibo,
           observaciones: observaciones || null,
           creadoPor: usuarioCreador,
         });
@@ -150,6 +165,11 @@ export class ReciboController {
         const aplicacionRepo = manager.getRepository(ReciboAplicacion);
         for (const data of aplicacionesData) {
           await aplicacionRepo.save(aplicacionRepo.create({ ...data, reciboId: recibo.id }));
+        }
+
+        const pagoRepo = manager.getRepository(ReciboPago);
+        for (const p of pagos as Array<{ medio: 'efectivo' | 'transferencia'; monto: number }>) {
+          await pagoRepo.save(pagoRepo.create({ reciboId: recibo.id, medio: p.medio, monto: Number(p.monto) }));
         }
 
         return { reciboId: recibo.id };

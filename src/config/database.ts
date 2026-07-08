@@ -16,6 +16,7 @@ import { StockComercial } from '../modules/facturacion/entities/StockComercial';
 import { MovimientoStockComercial } from '../modules/facturacion/entities/MovimientoStockComercial';
 import { Recibo } from '../modules/facturacion/entities/Recibo';
 import { ReciboAplicacion } from '../modules/facturacion/entities/ReciboAplicacion';
+import { ReciboPago } from '../modules/facturacion/entities/ReciboPago';
 import { NotaCredito } from '../modules/facturacion/entities/NotaCredito';
 import { NotaCreditoItem } from '../modules/facturacion/entities/NotaCreditoItem';
 import { MovimientoStock } from '../entities/MovimientoStock';
@@ -63,6 +64,7 @@ export const AppDataSource = new DataSource({
     MovimientoStockComercial,
     Recibo,
     ReciboAplicacion,
+    ReciboPago,
     NotaCredito,
     NotaCreditoItem,
   ],

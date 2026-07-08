@@ -1324,7 +1324,7 @@ export class ReportesController {
     try {
       const recibo = await AppDataSource.getRepository(Recibo).findOne({
         where: { id: Number(req.params.id) },
-        relations: ['cliente', 'aplicaciones'],
+        relations: ['cliente', 'aplicaciones', 'pagos'],
       });
 
       if (!recibo) {
@@ -1339,7 +1339,12 @@ export class ReportesController {
       const numeroComprobante = `${recibo.serie}-${recibo.numero}`;
       const pesos = (n: number | string | null | undefined) =>
         `$ ${toNumber(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      const medioLabel = recibo.medioPago === 'transferencia' ? 'Transferencia' : 'Efectivo';
+      const medioNombre = (m: string) => (m === 'transferencia' ? 'Transferencia' : 'Efectivo');
+      const pagos = recibo.pagos ?? [];
+      const mediosTexto =
+        pagos.length > 0
+          ? pagos.map((p) => `${medioNombre(p.medio)} ${pesos(p.monto)}`).join(' + ')
+          : medioNombre(recibo.medioPago);
 
       const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const bufferPromise = buildPdfBuffer(doc);
@@ -1423,7 +1428,7 @@ export class ReportesController {
         .font('Helvetica')
         .fontSize(11)
         .fillColor('#111827')
-        .text(`Recibí la suma de ${pesos(recibo.montoTotal)} en concepto de pago, mediante ${medioLabel}.`, left, doc.y, {
+        .text(`Recibí la suma de ${pesos(recibo.montoTotal)} en concepto de pago, mediante ${mediosTexto}.`, left, doc.y, {
           width: contentW,
         });
 

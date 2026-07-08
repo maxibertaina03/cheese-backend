@@ -11,8 +11,10 @@ import {
 import { Cliente } from './Cliente';
 import { Usuario } from '../../../entities/Usuario';
 import { ReciboAplicacion } from './ReciboAplicacion';
+import { ReciboPago } from './ReciboPago';
 
-export type MedioPago = 'efectivo' | 'transferencia';
+// A nivel recibo puede ser 'mixto' cuando combina medios de pago.
+export type MedioPago = 'efectivo' | 'transferencia' | 'mixto';
 
 // Recibo (serie 2): registra el cobro de una o varias notas de pedido de un cliente.
 @Entity('recibos')
@@ -43,6 +45,9 @@ export class Recibo {
 
   @OneToMany(() => ReciboAplicacion, (aplicacion) => aplicacion.recibo)
   aplicaciones!: ReciboAplicacion[];
+
+  @OneToMany(() => ReciboPago, (pago) => pago.recibo)
+  pagos!: ReciboPago[];
 
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;

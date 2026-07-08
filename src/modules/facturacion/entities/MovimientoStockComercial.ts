@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Producto } from '../../../entities/Producto';
+import { Proveedor } from '../../../entities/Proveedor';
 import { Usuario } from '../../../entities/Usuario';
 
 // Historial de movimientos del stock comercial (carga, venta, ajuste).
@@ -32,6 +33,26 @@ export class MovimientoStockComercial {
 
   @Column({ type: 'text', nullable: true })
   observaciones!: string | null;
+
+  // 🆕 Datos de la compra (solo en ingresos por carga): fecha, comprobante de compra
+  // (prefijo + número), precio de compra unitario y proveedor. Sirven para la ganancia.
+  @Column({ type: 'date', nullable: true })
+  fechaComprobante!: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  comprobantePrefijo!: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  comprobanteNumero!: string | null;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  precioCompra!: number | null;
+
+  @ManyToOne(() => Proveedor, { nullable: true })
+  proveedor!: Proveedor | null;
+
+  @Column({ type: 'int', nullable: true })
+  proveedorId!: number | null;
 
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;

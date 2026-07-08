@@ -27,14 +27,21 @@ export class ReciboAplicacionDto {
   monto!: number;
 }
 
+export class ReciboPagoDto {
+  @IsIn(['efectivo', 'transferencia'])
+  medio!: 'efectivo' | 'transferencia';
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  monto!: number;
+}
+
 export class CreateReciboDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
   clienteId!: number;
-
-  @IsIn(['efectivo', 'transferencia'])
-  medioPago!: 'efectivo' | 'transferencia';
 
   @Transform(nullToUndefined)
   @IsOptional()
@@ -47,6 +54,12 @@ export class CreateReciboDto {
   @ValidateNested({ each: true })
   @Type(() => ReciboAplicacionDto)
   aplicaciones!: ReciboAplicacionDto[];
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ReciboPagoDto)
+  pagos!: ReciboPagoDto[];
 }
 
 export class ReciboIdParamDto {

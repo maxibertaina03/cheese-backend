@@ -5,6 +5,14 @@ import { Usuario } from '../../../entities/Usuario';
 
 type Tipo = 'ingreso' | 'egreso' | 'ajuste';
 
+export interface DatosCompra {
+  fechaComprobante?: string | null;
+  comprobantePrefijo?: string | null;
+  comprobanteNumero?: string | null;
+  precioCompra?: number | null;
+  proveedorId?: number | null;
+}
+
 const registrarMovimiento = async (
   manager: EntityManager,
   productoId: number,
@@ -14,7 +22,8 @@ const registrarMovimiento = async (
   stockNuevo: number,
   referencia: string | null,
   observaciones: string | null,
-  usuario: Usuario | null
+  usuario: Usuario | null,
+  datosCompra?: DatosCompra
 ) => {
   const movRepo = manager.getRepository(MovimientoStockComercial);
   await movRepo.save(
@@ -27,6 +36,11 @@ const registrarMovimiento = async (
       referencia,
       observaciones,
       creadoPor: usuario,
+      fechaComprobante: datosCompra?.fechaComprobante ?? null,
+      comprobantePrefijo: datosCompra?.comprobantePrefijo ?? null,
+      comprobanteNumero: datosCompra?.comprobanteNumero ?? null,
+      precioCompra: datosCompra?.precioCompra ?? null,
+      proveedorId: datosCompra?.proveedorId ?? null,
     })
   );
 };
@@ -52,14 +66,15 @@ export const ingresarStock = async (
   cantidad: number,
   referencia: string,
   observaciones: string | null,
-  usuario: Usuario | null
+  usuario: Usuario | null,
+  datosCompra?: DatosCompra
 ): Promise<{ stockAnterior: number; stockNuevo: number }> => {
   const row = await lockRow(manager, productoId);
   const stockAnterior = Number(row.cantidadDisponible);
   const stockNuevo = stockAnterior + cantidad;
   row.cantidadDisponible = stockNuevo;
   await manager.getRepository(StockComercial).save(row);
-  await registrarMovimiento(manager, productoId, 'ingreso', cantidad, stockAnterior, stockNuevo, referencia, observaciones, usuario);
+  await registrarMovimiento(manager, productoId, 'ingreso', cantidad, stockAnterior, stockNuevo, referencia, observaciones, usuario, datosCompra);
   return { stockAnterior, stockNuevo };
 };
 

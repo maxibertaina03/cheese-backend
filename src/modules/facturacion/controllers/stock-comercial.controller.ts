@@ -33,11 +33,27 @@ export class StockComercialController {
     }
   }
 
-  // Carga cantidad al stock comercial de un producto.
+  // Carga cantidad al stock comercial de un producto (compra).
   static async ingreso(req: AuthRequest, res: Response) {
     try {
       const productoId = Number(req.params.productoId);
-      const { cantidad, observaciones } = req.body as { cantidad?: number; observaciones?: string | null };
+      const {
+        cantidad,
+        observaciones,
+        fechaComprobante,
+        comprobantePrefijo,
+        comprobanteNumero,
+        precioCompra,
+        proveedorId,
+      } = req.body as {
+        cantidad?: number;
+        observaciones?: string | null;
+        fechaComprobante?: string | null;
+        comprobantePrefijo?: string | null;
+        comprobanteNumero?: string | null;
+        precioCompra?: number | null;
+        proveedorId?: number | null;
+      };
       const cantidadNum = Number(cantidad);
 
       if (!cantidadNum || cantidadNum <= 0) {
@@ -54,7 +70,13 @@ export class StockComercialController {
         if (req.user?.id) {
           usuario = await manager.getRepository(Usuario).findOneBy({ id: req.user.id });
         }
-        return ingresarStock(manager, productoId, cantidadNum, 'Carga', observaciones || null, usuario);
+        return ingresarStock(manager, productoId, cantidadNum, 'Carga', observaciones || null, usuario, {
+          fechaComprobante: fechaComprobante || null,
+          comprobantePrefijo: comprobantePrefijo || null,
+          comprobanteNumero: comprobanteNumero || null,
+          precioCompra: precioCompra != null && precioCompra !== ('' as any) ? Number(precioCompra) : null,
+          proveedorId: proveedorId ? Number(proveedorId) : null,
+        });
       });
 
       res.json({ message: 'Stock cargado correctamente', ...resultado });

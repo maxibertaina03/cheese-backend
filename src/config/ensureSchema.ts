@@ -116,6 +116,12 @@ const STATEMENTS: string[] = [
     "creadoPorId" integer,
     "createdAt" TIMESTAMP NOT NULL DEFAULT now()
   )`,
+  // Datos de compra en el ingreso de stock comercial
+  'ALTER TABLE "movimientos_stock_comercial" ADD COLUMN IF NOT EXISTS "fechaComprobante" date',
+  'ALTER TABLE "movimientos_stock_comercial" ADD COLUMN IF NOT EXISTS "comprobantePrefijo" varchar(20)',
+  'ALTER TABLE "movimientos_stock_comercial" ADD COLUMN IF NOT EXISTS "comprobanteNumero" varchar(30)',
+  'ALTER TABLE "movimientos_stock_comercial" ADD COLUMN IF NOT EXISTS "precioCompra" numeric(12,2)',
+  'ALTER TABLE "movimientos_stock_comercial" ADD COLUMN IF NOT EXISTS "proveedorId" integer',
 
   // --- Fase 3: recibos (serie 2) ---
   `INSERT INTO "secuencias_comprobante" ("tipo","prefijo","ultimoNumero")
@@ -138,6 +144,13 @@ const STATEMENTS: string[] = [
     "reciboId" integer NOT NULL,
     "notaPedidoId" integer NOT NULL,
     "numeroNota" varchar(20),
+    "monto" numeric(12,2) NOT NULL DEFAULT 0
+  )`,
+  // Formas de pago de un recibo (permite pago mixto)
+  `CREATE TABLE IF NOT EXISTS "recibos_pagos" (
+    "id" SERIAL PRIMARY KEY,
+    "reciboId" integer NOT NULL,
+    "medio" varchar(20) NOT NULL,
     "monto" numeric(12,2) NOT NULL DEFAULT 0
   )`,
 
