@@ -26,4 +26,9 @@ export class ReciboAplicacion {
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   monto!: number;
+
+  // Snapshot del saldo que quedó pendiente en la nota tras aplicar este recibo.
+  // Se usa en el PDF para mostrar el saldo adeudado en pagos parciales.
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  saldoPosterior!: number | null;
 }

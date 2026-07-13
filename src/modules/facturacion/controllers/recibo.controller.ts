@@ -135,6 +135,7 @@ export class ReciboController {
             notaPedidoId: nota.id,
             numeroNota: `${nota.serie}-${nota.numero}`,
             monto,
+            saldoPosterior: saldoNuevo,
           });
         }
 

@@ -1324,7 +1324,7 @@ export class ReportesController {
     try {
       const recibo = await AppDataSource.getRepository(Recibo).findOne({
         where: { id: Number(req.params.id) },
-        relations: ['cliente', 'aplicaciones', 'pagos'],
+        relations: ['cliente', 'aplicaciones', 'aplicaciones.notaPedido', 'pagos'],
       });
 
       if (!recibo) {
@@ -1433,17 +1433,28 @@ export class ReportesController {
         });
 
       // ----- Detalle: notas pagadas -----
+      // Saldo que quedó pendiente en cada nota tras este recibo. Se usa el snapshot
+      // guardado al crear el recibo; para recibos viejos (sin snapshot) se cae al
+      // saldo actual de la nota.
+      const aplicaciones = recibo.aplicaciones ?? [];
+      const saldoDe = (ap: (typeof aplicaciones)[number]) =>
+        toNumber(ap.saldoPosterior ?? ap.notaPedido?.saldoPendiente ?? 0);
+      const saldoAdeudadoTotal = aplicaciones.reduce((s, ap) => s + saldoDe(ap), 0);
+      const haySaldo = saldoAdeudadoTotal > 0.001;
+
       doc.y += 6;
       drawSectionTitle(doc, 'Comprobantes cancelados');
       this.drawSimpleTable(
         doc,
         [
-          { label: 'Nota de pedido', x: 40, width: 300 },
-          { label: 'Monto aplicado', x: 340, width: 215, align: 'right' },
+          { label: 'Nota de pedido', x: 40, width: 230 },
+          { label: 'Monto aplicado', x: 270, width: 145, align: 'right' },
+          { label: 'Saldo pendiente', x: 415, width: 140, align: 'right' },
         ],
-        (recibo.aplicaciones ?? []).map((ap) => [
+        aplicaciones.map((ap) => [
           `Nota ${ap.numeroNota ?? ''}`,
           pesos(ap.monto),
+          pesos(saldoDe(ap)),
         ])
       );
 
@@ -1459,6 +1470,23 @@ export class ReportesController {
         .fontSize(14)
         .text(`TOTAL   ${pesos(recibo.montoTotal)}`, right - 230, totalY + 9, { width: 216, align: 'right' });
       doc.y = totalY + 44;
+
+      // Saldo adeudado (solo si el/los pagos fueron parciales)
+      if (haySaldo) {
+        const saldoY = doc.y;
+        doc.save();
+        doc.roundedRect(right - 230, saldoY, 230, 26, 5).fillAndStroke('#fef2f2', '#fecaca');
+        doc.restore();
+        doc
+          .fillColor('#b91c1c')
+          .font('Helvetica-Bold')
+          .fontSize(11)
+          .text(`SALDO ADEUDADO   ${pesos(saldoAdeudadoTotal)}`, right - 230, saldoY + 8, {
+            width: 216,
+            align: 'right',
+          });
+        doc.y = saldoY + 38;
+      }
 
       if (recibo.observaciones) {
         doc

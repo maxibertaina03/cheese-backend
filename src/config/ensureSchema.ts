@@ -146,6 +146,8 @@ const STATEMENTS: string[] = [
     "numeroNota" varchar(20),
     "monto" numeric(12,2) NOT NULL DEFAULT 0
   )`,
+  // Snapshot del saldo pendiente de la nota tras el recibo (para PDF de pagos parciales)
+  'ALTER TABLE "recibos_aplicaciones" ADD COLUMN IF NOT EXISTS "saldoPosterior" numeric(12,2)',
   // Formas de pago de un recibo (permite pago mixto)
   `CREATE TABLE IF NOT EXISTS "recibos_pagos" (
     "id" SERIAL PRIMARY KEY,
