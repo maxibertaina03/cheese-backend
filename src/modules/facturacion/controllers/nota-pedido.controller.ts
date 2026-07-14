@@ -55,14 +55,22 @@ export class NotaPedidoController {
 
   static async create(req: AuthRequest, res: Response) {
     try {
-      const { clienteId, observaciones, items } = req.body as {
+      const { clienteId, observaciones, items, fecha } = req.body as {
         clienteId?: number;
         observaciones?: string | null;
+        fecha?: string | null;
         items?: Array<{ tipoItem: 'queso' | 'elemento'; productoId?: number; elementoId?: number; cantidad?: number }>;
       };
 
       if (!clienteId) {
         return res.status(400).json({ error: 'El cliente es obligatorio' });
+      }
+
+      // Fecha del comprobante: si viene 'YYYY-MM-DD', se guarda a mediodía UTC para
+      // que no se corra un día al mostrarla en zonas horarias negativas (ej. AR).
+      const fechaComprobante = fecha ? new Date(`${String(fecha).slice(0, 10)}T12:00:00Z`) : undefined;
+      if (fecha && Number.isNaN(fechaComprobante!.getTime())) {
+        return res.status(400).json({ error: 'La fecha de la nota no es válida' });
       }
       if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'La nota debe tener al menos un ítem' });
@@ -185,6 +193,7 @@ export class NotaPedidoController {
           estado: 'confirmada',
           observaciones: observaciones || null,
           creadoPor: usuarioCreador,
+          ...(fechaComprobante ? { fecha: fechaComprobante } : {}),
         });
         await notaRepo.save(nota);
 

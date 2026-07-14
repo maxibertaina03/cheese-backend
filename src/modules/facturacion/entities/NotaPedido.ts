@@ -4,7 +4,6 @@ import {
   Column,
   ManyToOne,
   OneToMany,
-  CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
@@ -49,7 +48,9 @@ export class NotaPedido {
   @ManyToOne(() => Usuario, { nullable: true })
   creadoPor!: Usuario | null;
 
-  @CreateDateColumn()
+  // Fecha del comprobante. Por defecto es la de creación (now()), pero se puede
+  // especificar al crear la nota (ej.: cargar una nota de una fecha anterior).
+  @Column({ type: 'timestamp', default: () => 'now()' })
   fecha!: Date;
 
   @UpdateDateColumn()

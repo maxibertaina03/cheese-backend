@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -45,6 +46,12 @@ export class CreateNotaPedidoDto {
   @IsInt()
   @Min(1)
   clienteId!: number;
+
+  // Fecha del comprobante (YYYY-MM-DD). Opcional: si no viene, se usa la fecha actual.
+  @Transform(nullToUndefined)
+  @IsOptional()
+  @IsDateString()
+  fecha?: string;
 
   @Transform(nullToUndefined)
   @IsOptional()
