@@ -8,6 +8,9 @@ const router = Router();
 
 router.get('/', auth, requirePermiso('facturacion'), StockComercialController.getAll);
 
+// Historial general de movimientos (todas las cargas/ventas/ajustes), para análisis.
+router.get('/movimientos', auth, requirePermiso('facturacion'), StockComercialController.getAllMovimientos);
+
 router.post(
   '/:productoId/ingreso',
   auth,

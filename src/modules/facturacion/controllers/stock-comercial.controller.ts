@@ -85,6 +85,42 @@ export class StockComercialController {
     }
   }
 
+  // Historial completo de movimientos de todos los productos (para análisis de compras).
+  static async getAllMovimientos(_req: AuthRequest, res: Response) {
+    try {
+      const movimientos = await AppDataSource.getRepository(MovimientoStockComercial).find({
+        relations: ['producto', 'producto.tipoQueso', 'proveedor', 'creadoPor'],
+        order: { createdAt: 'DESC' },
+      });
+      // Mapeo seguro: no exponemos el objeto Usuario completo (evita filtrar el hash).
+      res.json(
+        movimientos.map((m) => ({
+          id: m.id,
+          productoId: m.productoId,
+          producto: m.producto?.nombre ?? null,
+          plu: m.producto?.plu ?? null,
+          tipoQueso: m.producto?.tipoQueso?.nombre ?? null,
+          tipo: m.tipo,
+          cantidad: m.cantidad,
+          stockAnterior: m.stockAnterior,
+          stockNuevo: m.stockNuevo,
+          referencia: m.referencia,
+          observaciones: m.observaciones,
+          fechaComprobante: m.fechaComprobante,
+          comprobantePrefijo: m.comprobantePrefijo,
+          comprobanteNumero: m.comprobanteNumero,
+          precioCompra: m.precioCompra,
+          proveedorId: m.proveedorId,
+          proveedor: m.proveedor?.nombre ?? null,
+          usuario: m.creadoPor ? { id: m.creadoPor.id, username: m.creadoPor.username } : null,
+          createdAt: m.createdAt,
+        }))
+      );
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getMovimientos(req: AuthRequest, res: Response) {
     try {
       const productoId = Number(req.params.productoId);
