@@ -10,14 +10,21 @@ import {
 } from '../dtos/indumentaria.dto';
 import { auth, requirePermiso } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validation.middleware';
+import { asyncHandler } from '../compartido/middlewares/asyncHandler';
 
 const router = Router();
 
-router.get('/reporte/bajos', auth, IndumentariaController.getStockBajo);
+router.get('/reporte/bajos', auth, asyncHandler(IndumentariaController.getStockBajo));
 
-router.get('/', auth, IndumentariaController.getAll);
+router.get('/', auth, asyncHandler(IndumentariaController.getAll));
 
-router.post('/', auth, requirePermiso('indumentaria'), validateDto(CreateIndumentariaDto), IndumentariaController.create);
+router.post(
+  '/',
+  auth,
+  requirePermiso('indumentaria'),
+  validateDto(CreateIndumentariaDto),
+  asyncHandler(IndumentariaController.create)
+);
 
 router.put(
   '/:id',
@@ -25,7 +32,7 @@ router.put(
   requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   validateDto(UpdateIndumentariaDto),
-  IndumentariaController.update
+  asyncHandler(IndumentariaController.update)
 );
 
 router.delete(
@@ -33,7 +40,7 @@ router.delete(
   auth,
   requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
-  IndumentariaController.delete
+  asyncHandler(IndumentariaController.delete)
 );
 
 router.post(
@@ -42,7 +49,7 @@ router.post(
   requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   validateDto(IngresoIndumentariaDto),
-  IndumentariaController.ingresarStock
+  asyncHandler(IndumentariaController.ingresarStock)
 );
 
 router.post(
@@ -51,7 +58,7 @@ router.post(
   requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   validateDto(EgresoIndumentariaDto),
-  IndumentariaController.egresarStock
+  asyncHandler(IndumentariaController.egresarStock)
 );
 
 router.post(
@@ -60,14 +67,14 @@ router.post(
   requirePermiso('indumentaria'),
   validateDto(IdParamDto, 'params'),
   validateDto(AjusteIndumentariaDto),
-  IndumentariaController.ajusteStock
+  asyncHandler(IndumentariaController.ajusteStock)
 );
 
 router.get(
   '/:id/movimientos',
   auth,
   validateDto(IdParamDto, 'params'),
-  IndumentariaController.getMovimientos
+  asyncHandler(IndumentariaController.getMovimientos)
 );
 
 export default router;
