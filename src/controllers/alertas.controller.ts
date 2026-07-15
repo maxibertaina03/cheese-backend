@@ -14,10 +14,9 @@ interface Alerta {
 }
 
 export class AlertasController {
-  
   // GET /api/alertas
-  static async getAlertas(req: AuthRequest, res: Response) {
-    try {
+  // Los errores inesperados se derivan al errorHandler global vía asyncHandler.
+  static async getAlertas(_req: AuthRequest, res: Response) {
       const alertas: Alerta[] = [];
       const unidadRepo = AppDataSource.getRepository(Unidad);
 
@@ -145,9 +144,5 @@ export class AlertasController {
       alertas.sort((a, b) => prioridadOrden[a.prioridad] - prioridadOrden[b.prioridad]);
 
       res.json(alertas);
-    } catch (error: any) {
-      console.error('Error en getAlertas:', error);
-      res.status(500).json({ error: error.message });
-    }
   }
 }
