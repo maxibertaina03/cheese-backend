@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AppDataSource } from '../../../config/database';
-import { Usuario } from '../../../entities/Usuario';
 import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { Cliente } from '../entities/Cliente';
 import { NotaPedido } from '../entities/NotaPedido';
 import { Recibo } from '../entities/Recibo';
@@ -79,10 +79,7 @@ export class ReciboController {
           return fail(404, 'Cliente no encontrado');
         }
 
-        let usuarioCreador: Usuario | null = null;
-        if (req.user?.id) {
-          usuarioCreador = await manager.getRepository(Usuario).findOneBy({ id: req.user.id });
-        }
+        const usuarioCreador = await getUsuarioActual(req, manager);
 
         // Numeración atómica de la serie de recibos (tipo 2)
         const secRepo = manager.getRepository(SecuenciaComprobante);

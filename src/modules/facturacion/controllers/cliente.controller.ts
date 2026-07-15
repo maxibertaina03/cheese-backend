@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { AppDataSource } from '../../../config/database';
 import { Cliente } from '../entities/Cliente';
-import { Usuario } from '../../../entities/Usuario';
 import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 
 export class ClienteController {
   static async getAll(_req: AuthRequest, res: Response) {
@@ -38,10 +38,7 @@ export class ClienteController {
 
       const clienteRepo = AppDataSource.getRepository(Cliente);
 
-      let usuarioCreador: Usuario | null = null;
-      if (req.user?.id) {
-        usuarioCreador = await AppDataSource.getRepository(Usuario).findOneBy({ id: req.user.id });
-      }
+      const usuarioCreador = await getUsuarioActual(req);
 
       const cliente = clienteRepo.create({
         nombre,
@@ -95,10 +92,9 @@ export class ClienteController {
       if (email !== undefined) cliente.email = email;
       if (activo !== undefined) cliente.activo = activo;
 
+      // Solo se toca modificadoPor si el request viene autenticado.
       if (req.user?.id) {
-        cliente.modificadoPor = await AppDataSource.getRepository(Usuario).findOneBy({
-          id: req.user.id,
-        });
+        cliente.modificadoPor = await getUsuarioActual(req);
       }
 
       await clienteRepo.save(cliente);
@@ -119,9 +115,7 @@ export class ClienteController {
 
       cliente.activo = false;
       if (req.user?.id) {
-        cliente.eliminadoPor = await AppDataSource.getRepository(Usuario).findOneBy({
-          id: req.user.id,
-        });
+        cliente.eliminadoPor = await getUsuarioActual(req);
       }
       await clienteRepo.save(cliente);
 

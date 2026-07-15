@@ -3,8 +3,8 @@ import { In } from 'typeorm';
 import { AppDataSource } from '../../../config/database';
 import { Elemento } from '../../../entities/Elemento';
 import { MovimientoElemento } from '../../../entities/MovimientoElemento';
-import { Usuario } from '../../../entities/Usuario';
 import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { NotaCredito } from '../entities/NotaCredito';
 import { NotaCreditoItem } from '../entities/NotaCreditoItem';
 import { NotaPedido } from '../entities/NotaPedido';
@@ -127,10 +127,7 @@ export class NotaCreditoController {
           return fail(400, 'La nota de pedido ya está anulada');
         }
 
-        let usuario: Usuario | null = null;
-        if (req.user?.id) {
-          usuario = await manager.getRepository(Usuario).findOneBy({ id: req.user.id });
-        }
+        const usuario = await getUsuarioActual(req, manager);
 
         // Ítems de la nota + lo ya devuelto por ítem
         const notaItems = await manager.getRepository(NotaPedidoItem).find({ where: { notaPedidoId } });

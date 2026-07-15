@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { AppDataSource } from '../../../config/database';
 import { Producto } from '../../../entities/Producto';
-import { Usuario } from '../../../entities/Usuario';
 import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { StockComercial } from '../entities/StockComercial';
 import { MovimientoStockComercial } from '../entities/MovimientoStockComercial';
 import { ingresarStock } from '../services/stock-comercial.service';
@@ -66,10 +66,7 @@ export class StockComercialController {
       }
 
       const resultado = await AppDataSource.transaction(async (manager) => {
-        let usuario: Usuario | null = null;
-        if (req.user?.id) {
-          usuario = await manager.getRepository(Usuario).findOneBy({ id: req.user.id });
-        }
+        const usuario = await getUsuarioActual(req, manager);
         return ingresarStock(manager, productoId, cantidadNum, 'Carga', observaciones || null, usuario, {
           fechaComprobante: fechaComprobante || null,
           comprobantePrefijo: comprobantePrefijo || null,

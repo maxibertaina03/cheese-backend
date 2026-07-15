@@ -3,8 +3,8 @@ import { AppDataSource } from '../../../config/database';
 import { Elemento } from '../../../entities/Elemento';
 import { MovimientoElemento } from '../../../entities/MovimientoElemento';
 import { Producto } from '../../../entities/Producto';
-import { Usuario } from '../../../entities/Usuario';
 import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { Cliente } from '../entities/Cliente';
 import { NotaPedido } from '../entities/NotaPedido';
 import { NotaPedidoItem } from '../entities/NotaPedidoItem';
@@ -82,10 +82,7 @@ export class NotaPedidoController {
           return fail(404, 'Cliente no encontrado');
         }
 
-        let usuarioCreador: Usuario | null = null;
-        if (req.user?.id) {
-          usuarioCreador = await manager.getRepository(Usuario).findOneBy({ id: req.user.id });
-        }
+        const usuarioCreador = await getUsuarioActual(req, manager);
 
         // Numeración atómica primero: si un ítem falla, la transacción revierte y no se consume número.
         const secRepo = manager.getRepository(SecuenciaComprobante);
