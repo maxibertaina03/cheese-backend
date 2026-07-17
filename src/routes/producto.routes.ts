@@ -14,6 +14,13 @@ router.get('/:id', auth, asyncHandler(ProductoController.getOne));
 router.post('/', auth, requirePermiso('quesos'), asyncHandler(ProductoController.create));
 router.put('/:id', auth, requirePermiso('quesos'), asyncHandler(ProductoController.update));
 router.put('/:id/precio', auth, requirePermiso('quesos'), asyncHandler(ProductoController.updatePrecio));
+// Precio de venta por unidad: también lo puede cargar quien maneja facturación.
+router.put(
+  '/:id/precio-unitario',
+  auth,
+  requirePermiso('quesos', 'facturacion'),
+  asyncHandler(ProductoController.updatePrecioUnitario)
+);
 router.delete('/:id', auth, requirePermiso('quesos'), asyncHandler(ProductoController.delete));
 
 export default router;

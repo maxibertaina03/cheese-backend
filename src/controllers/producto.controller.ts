@@ -122,6 +122,32 @@ export class ProductoController {
     res.json(productoCompleto);
   }
 
+  // PUT /api/productos/:id/precio-unitario - Actualizar solo el precio de venta por
+  // unidad (usado por la pestaña Precios de Facturación). Solo toca ese campo, por eso
+  // lo puede hacer un usuario con permiso de facturación sin acceso al ABM de quesos.
+  static async updatePrecioUnitario(req: AuthRequest, res: Response) {
+    const { id } = req.params;
+    const { precioUnitario } = req.body as { precioUnitario?: number | null };
+
+    const productoRepo = AppDataSource.getRepository(Producto);
+    const producto = await productoRepo.findOneBy({ id: Number(id) });
+    if (!producto) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+
+    producto.precioUnitario = precioUnitario ?? null;
+    producto.modificadoPor = await getUsuarioActual(req);
+
+    await productoRepo.save(producto);
+
+    const productoCompleto = await productoRepo.findOne({
+      where: { id: Number(id) },
+      relations: ['tipoQueso', 'modificadoPor'],
+    });
+
+    res.json(productoCompleto);
+  }
+
   // PUT /api/productos/:id/precio - Actualizar solo precio
   static async updatePrecio(req: AuthRequest, res: Response) {
     const { id } = req.params;

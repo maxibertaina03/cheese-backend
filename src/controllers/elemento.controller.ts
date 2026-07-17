@@ -137,6 +137,35 @@ export class ElementoController {
     res.json(elementoCompleto);
   }
 
+  // PUT /api/elementos/:id/venta - Actualizar datos de venta (precio + si se vende).
+  // Usado por la pestaña Precios de Facturación: solo toca esos campos, por eso lo
+  // puede hacer un usuario con permiso de facturación sin acceso al ABM de elementos.
+  static async updateVenta(req: AuthRequest, res: Response) {
+    const { precioUnitario, esVendible } = req.body as {
+      precioUnitario?: number;
+      esVendible?: boolean;
+    };
+    const elementoRepo = AppDataSource.getRepository(Elemento);
+
+    const elemento = await elementoRepo.findOne({ where: { id: Number(req.params.id) } });
+    if (!elemento) {
+      return res.status(404).json({ error: 'Elemento no encontrado' });
+    }
+
+    if (precioUnitario !== undefined) elemento.precioUnitario = precioUnitario;
+    if (esVendible !== undefined) elemento.esVendible = esVendible;
+    elemento.modificadoPor = await getUsuarioActual(req);
+
+    await elementoRepo.save(elemento);
+
+    const elementoCompleto = await elementoRepo.findOne({
+      where: { id: elemento.id },
+      relations: ['creadoPor', 'modificadoPor'],
+    });
+
+    res.json(elementoCompleto);
+  }
+
   // POST /api/elementos/:id/ingreso - Registrar ingreso de stock
   static async registrarIngreso(req: AuthRequest, res: Response) {
     const { cantidad, observaciones } = req.body;

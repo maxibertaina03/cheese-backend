@@ -5,6 +5,7 @@ import {
   ElementoIdParamDto,
   MovimientoElementoDto,
   UpdateElementoDto,
+  UpdateElementoVentaDto,
 } from '../dtos/elemento.dto';
 import { auth, requirePermiso } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validation.middleware';
@@ -35,6 +36,15 @@ router.put(
   validateDto(ElementoIdParamDto, 'params'),
   validateDto(UpdateElementoDto),
   asyncHandler(ElementoController.update)
+);
+// Datos de venta (precio + si se vende): también los puede cargar quien maneja facturación.
+router.put(
+  '/:id/venta',
+  auth,
+  requirePermiso('elementos', 'facturacion'),
+  validateDto(ElementoIdParamDto, 'params'),
+  validateDto(UpdateElementoVentaDto),
+  asyncHandler(ElementoController.updateVenta)
 );
 router.post(
   '/:id/ingreso',

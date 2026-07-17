@@ -59,6 +59,21 @@ export class UpdateElementoDto {
   esVendible?: boolean;
 }
 
+// Datos de venta del elemento (pestaña Precios de Facturación): solo precio y
+// si se vende. No permite tocar nombre/descripción.
+export class UpdateElementoVentaDto {
+  @Transform(nullToUndefined)
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  precioUnitario?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  esVendible?: boolean;
+}
+
 export class MovimientoElementoDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
