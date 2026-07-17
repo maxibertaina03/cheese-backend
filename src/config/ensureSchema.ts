@@ -96,6 +96,8 @@ const STATEMENTS: string[] = [
   )`,
   // Ítems de nota de pedido ahora referencian el producto (venta por cantidad)
   'ALTER TABLE "notas_pedido_items" ADD COLUMN IF NOT EXISTS "productoId" integer',
+  // Descuento en $ por línea de ítem
+  'ALTER TABLE "notas_pedido_items" ADD COLUMN IF NOT EXISTS "descuento" numeric(12,2) NOT NULL DEFAULT 0',
 
   // --- Stock comercial (facturación, por cantidad) ---
   `CREATE TABLE IF NOT EXISTS "stock_comercial" (

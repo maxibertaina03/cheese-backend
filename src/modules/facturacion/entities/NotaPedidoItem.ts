@@ -46,6 +46,10 @@ export class NotaPedidoItem {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   precioUnitario!: number;
 
+  // Descuento en $ aplicado a la línea (precio × cantidad − descuento = subtotal).
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  descuento!: number;
+
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   subtotal!: number;
 }

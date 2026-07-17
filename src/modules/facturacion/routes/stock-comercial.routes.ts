@@ -11,6 +11,9 @@ router.get('/', auth, requirePermiso('facturacion'), StockComercialController.ge
 // Historial general de movimientos (todas las cargas/ventas/ajustes), para análisis.
 router.get('/movimientos', auth, requirePermiso('facturacion'), StockComercialController.getAllMovimientos);
 
+// Eliminar una compra (movimiento de ingreso) y revertir el stock.
+router.delete('/movimientos/:id', auth, requirePermiso('facturacion'), StockComercialController.eliminarMovimiento);
+
 router.post(
   '/:productoId/ingreso',
   auth,

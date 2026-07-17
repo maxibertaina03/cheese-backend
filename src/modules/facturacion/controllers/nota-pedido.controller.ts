@@ -59,7 +59,13 @@ export class NotaPedidoController {
         clienteId?: number;
         observaciones?: string | null;
         fecha?: string | null;
-        items?: Array<{ tipoItem: 'queso' | 'elemento'; productoId?: number; elementoId?: number; cantidad?: number }>;
+        items?: Array<{
+          tipoItem: 'queso' | 'elemento';
+          productoId?: number;
+          elementoId?: number;
+          cantidad?: number;
+          descuento?: number;
+        }>;
       };
 
       if (!clienteId) {
@@ -107,6 +113,8 @@ export class NotaPedidoController {
           if (!cantidad || cantidad <= 0) {
             return fail(400, 'La cantidad debe ser mayor a 0');
           }
+          // Descuento en $ de la línea (nunca negativo).
+          const descuentoItem = Math.max(0, Number(it.descuento) || 0);
 
           if (it.tipoItem === 'queso') {
             const producto = await manager.getRepository(Producto).findOneBy({ id: it.productoId });
@@ -124,7 +132,11 @@ export class NotaPedidoController {
             }
 
             const precioNum = Number(precio);
-            const subtotal = precioNum * cantidad;
+            const bruto = precioNum * cantidad;
+            if (descuentoItem > bruto) {
+              return fail(400, `El descuento de "${producto.nombre}" no puede superar el importe (${bruto.toFixed(2)})`);
+            }
+            const subtotal = bruto - descuentoItem;
             total += subtotal;
             itemsData.push({
               tipoItem: 'queso',
@@ -134,6 +146,7 @@ export class NotaPedidoController {
               plu: producto.plu,
               cantidad,
               precioUnitario: precioNum,
+              descuento: descuentoItem,
               subtotal,
             });
           } else if (it.tipoItem === 'elemento') {
@@ -160,7 +173,11 @@ export class NotaPedidoController {
             await elementoRepo.save(elemento);
 
             const precioNum = Number(elemento.precioUnitario);
-            const subtotal = precioNum * cantidad;
+            const bruto = precioNum * cantidad;
+            if (descuentoItem > bruto) {
+              return fail(400, `El descuento de "${elemento.nombre}" no puede superar el importe (${bruto.toFixed(2)})`);
+            }
+            const subtotal = bruto - descuentoItem;
             total += subtotal;
             egresosElemento.push({ elemento, cantidad, stockAnterior, stockNuevo });
             itemsData.push({
@@ -171,6 +188,7 @@ export class NotaPedidoController {
               plu: null,
               cantidad,
               precioUnitario: precioNum,
+              descuento: descuentoItem,
               subtotal,
             });
           } else {

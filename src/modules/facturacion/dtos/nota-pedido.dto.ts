@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -39,6 +40,14 @@ export class NotaPedidoItemDto {
   @IsInt()
   @Min(1)
   cantidad!: number;
+
+  // Descuento en $ aplicado a la línea (opcional). No puede ser negativo.
+  @Transform(nullToUndefined)
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  descuento?: number;
 }
 
 export class CreateNotaPedidoDto {

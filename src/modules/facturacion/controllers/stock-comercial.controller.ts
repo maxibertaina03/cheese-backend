@@ -118,6 +118,59 @@ export class StockComercialController {
     }
   }
 
+  // Elimina una compra (movimiento de ingreso) y revierte el stock. Solo aplica a
+  // ingresos; las ventas/ajustes se corrigen por otros medios (nota de crédito, etc.).
+  static async eliminarMovimiento(req: AuthRequest, res: Response) {
+    try {
+      const id = Number(req.params.id);
+
+      type Resultado = { error: { status: number; msg: string } } | { ok: true };
+      const resultado: Resultado = await AppDataSource.transaction(async (manager): Promise<Resultado> => {
+        const movRepo = manager.getRepository(MovimientoStockComercial);
+        const mov = await movRepo.findOneBy({ id });
+        if (!mov) {
+          return { error: { status: 404, msg: 'Movimiento no encontrado' } };
+        }
+        if (mov.tipo !== 'ingreso') {
+          return { error: { status: 400, msg: 'Solo se pueden eliminar compras (ingresos)' } };
+        }
+
+        const cantidad = Number(mov.cantidad);
+        const stockRepo = manager.getRepository(StockComercial);
+        const stock = await stockRepo.findOne({
+          where: { productoId: mov.productoId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        const disponible = stock ? Number(stock.cantidadDisponible) : 0;
+
+        // No se puede revertir si ya no queda stock suficiente (parte ya se vendió).
+        if (disponible < cantidad) {
+          return {
+            error: {
+              status: 400,
+              msg: `No se puede eliminar: el stock disponible (${disponible}) es menor que la cantidad de la compra (${cantidad}). Probablemente ya se vendió parte de ese stock.`,
+            },
+          };
+        }
+
+        if (stock) {
+          stock.cantidadDisponible = disponible - cantidad;
+          await stockRepo.save(stock);
+        }
+        await movRepo.remove(mov);
+        return { ok: true };
+      });
+
+      if ('error' in resultado) {
+        return res.status(resultado.error.status).json({ error: resultado.error.msg });
+      }
+
+      res.json({ message: 'Compra eliminada y stock actualizado' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getMovimientos(req: AuthRequest, res: Response) {
     try {
       const productoId = Number(req.params.productoId);

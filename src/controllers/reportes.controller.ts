@@ -1133,19 +1133,22 @@ export class ReportesController {
       drawSimpleTable(
         doc,
         [
-          { label: 'Cant.', x: 40, width: 40, align: 'center' },
-          { label: 'Descripción', x: 80, width: 200 },
-          { label: 'Identificación', x: 280, width: 130 },
-          { label: 'P. unit.', x: 410, width: 70, align: 'right' },
-          { label: 'Subtotal', x: 480, width: 75, align: 'right' },
+          { label: 'Cant.', x: 40, width: 32, align: 'center' },
+          { label: 'Descripción', x: 72, width: 170 },
+          { label: 'Identificación', x: 242, width: 93 },
+          { label: 'P. unit.', x: 335, width: 68, align: 'right' },
+          { label: 'Descuento', x: 403, width: 68, align: 'right' },
+          { label: 'Subtotal', x: 471, width: 84, align: 'right' },
         ],
         (nota.items ?? []).map((item) => {
           const identificacion = item.tipoItem === 'queso' && item.plu ? `PLU ${item.plu}` : '-';
+          const descuento = toNumber(item.descuento);
           return [
             String(item.cantidad),
-            truncateText(item.descripcion, 34),
+            truncateText(item.descripcion, 30),
             identificacion,
             pesos(item.precioUnitario),
+            descuento > 0 ? `- ${pesos(descuento)}` : '-',
             pesos(item.subtotal),
           ];
         })
