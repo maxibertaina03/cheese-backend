@@ -8,7 +8,7 @@
 //   node dist/scripts/limpiar-facturacion.js --confirmar
 // ============================================
 import { AppDataSource } from '../config/database';
-import { limpiarTransaccionesFacturacion } from '../modules/facturacion/services/limpiar.service';
+import { limpiarTransaccionesFacturacion } from '../modulos/facturacion/services/limpiar.service';
 
 async function limpiarFacturacion() {
   if (!process.argv.includes('--confirmar')) {

@@ -20,14 +20,14 @@ import tipoElementoRoutes from './routes/tipo-elemento.routes'; // 🆕
 import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
 import proveedorRoutes from './routes/proveedor.routes'; // 🆕
 // Módulo Facturación (bounded context)
-import clienteRoutes from './modules/facturacion/routes/cliente.routes';
-import empresaRoutes from './modules/facturacion/routes/empresa.routes';
-import notaPedidoRoutes from './modules/facturacion/routes/nota-pedido.routes';
-import stockComercialRoutes from './modules/facturacion/routes/stock-comercial.routes';
-import reciboRoutes from './modules/facturacion/routes/recibo.routes';
-import notaCreditoRoutes from './modules/facturacion/routes/nota-credito.routes';
-import reporteFacturacionRoutes from './modules/facturacion/routes/reporte-facturacion.routes';
-import mantenimientoRoutes from './modules/facturacion/routes/mantenimiento.routes';
+import clienteRoutes from './modulos/facturacion/routes/cliente.routes';
+import empresaRoutes from './modulos/facturacion/routes/empresa.routes';
+import notaPedidoRoutes from './modulos/facturacion/routes/nota-pedido.routes';
+import stockComercialRoutes from './modulos/facturacion/routes/stock-comercial.routes';
+import reciboRoutes from './modulos/facturacion/routes/recibo.routes';
+import notaCreditoRoutes from './modulos/facturacion/routes/nota-credito.routes';
+import reporteFacturacionRoutes from './modulos/facturacion/routes/reporte-facturacion.routes';
+import mantenimientoRoutes from './modulos/facturacion/routes/mantenimiento.routes';
 import logger, { requestLogger, errorHandler } from './utils/logger';
 
 const app = express();
