@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AppDataSource } from '../../../config/database';
 import { Elemento } from '../../elementos/entities/Elemento';
 import { MovimientoElemento } from '../../elementos/entities/MovimientoElemento';
-import { Producto } from '../../../entities/Producto';
+import { Producto } from '../../inventario-quesos/entities/Producto';
 import { AuthRequest } from '../../../middlewares/auth';
 import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { Cliente } from '../entities/Cliente';

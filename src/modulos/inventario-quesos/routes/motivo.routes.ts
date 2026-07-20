@@ -3,8 +3,8 @@
 // ============================================
 import { Router } from 'express';
 import { MotivoController } from '../controllers/motivo.controller';
-import { auth, requireRole } from '../middlewares/auth';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { auth, requireRole } from '../../../middlewares/auth';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

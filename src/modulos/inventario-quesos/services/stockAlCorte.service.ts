@@ -1,7 +1,7 @@
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Producto } from '../entities/Producto';
 import { Unidad } from '../entities/Unidad';
-import { MovimientoStockComercial } from '../modulos/facturacion/entities/MovimientoStockComercial';
+import { MovimientoStockComercial } from '../../facturacion/entities/MovimientoStockComercial';
 
 export interface StockLunesProducto {
   productoId: number;

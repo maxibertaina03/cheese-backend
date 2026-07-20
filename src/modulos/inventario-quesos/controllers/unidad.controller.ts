@@ -1,14 +1,14 @@
 // Los errores inesperados se derivan al errorHandler global vía asyncHandler
 // (ver rutas); acá solo se responden los errores de negocio (400/404).
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Motivo } from '../entities/Motivo';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
 import { Unidad } from '../entities/Unidad';
-import { AuthRequest } from '../middlewares/auth';
+import { AuthRequest } from '../../../middlewares/auth';
 import { computeStockAlCorte, getUltimoLunes } from '../services/stockAlCorte.service';
-import { getUsuarioActual } from '../compartido/utils/usuarioActual';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 
 type ControllerErrorResult = {
   error: {

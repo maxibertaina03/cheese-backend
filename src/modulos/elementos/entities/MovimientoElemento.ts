@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Elemento } from './Elemento';
-import { Motivo } from '../../../entities/Motivo';
+import { Motivo } from '../../inventario-quesos/entities/Motivo';
 import { Usuario } from '../../../entities/Usuario';
 
 @Entity('movimientos_elemento')

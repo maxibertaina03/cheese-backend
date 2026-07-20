@@ -3,8 +3,8 @@
 // ============================================
 import { Router } from 'express';
 import { ParticionController } from '../controllers/particion.controller';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

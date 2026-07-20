@@ -2,7 +2,7 @@
 // ARCHIVO: src/services/seed.motivos.ts (NUEVO)
 // ============================================
 import { AppDataSource } from '../config/database';
-import { Motivo } from '../entities/Motivo';
+import { Motivo } from '../modulos/inventario-quesos/entities/Motivo';
 
 const motivosPredefinidos = [
   {

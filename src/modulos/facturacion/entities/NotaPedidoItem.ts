@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { NotaPedido } from './NotaPedido';
-import { Producto } from '../../../entities/Producto';
+import { Producto } from '../../inventario-quesos/entities/Producto';
 import { Elemento } from '../../elementos/entities/Elemento';
 
 export type TipoItemNota = 'queso' | 'elemento';

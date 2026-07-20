@@ -9,7 +9,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { StockElemento } from './StockElemento';
-import { Motivo } from '../../../entities/Motivo';
+import { Motivo } from '../../inventario-quesos/entities/Motivo';
 import { Usuario } from '../../../entities/Usuario';
 
 @Entity('movimientos_stock')

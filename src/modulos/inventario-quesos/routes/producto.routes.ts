@@ -3,9 +3,9 @@
 // ============================================
 import { Router } from 'express';
 import { ProductoController } from '../controllers/producto.controller';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { cacheMiddleware } from '../config/redis';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { cacheMiddleware } from '../../../config/redis';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

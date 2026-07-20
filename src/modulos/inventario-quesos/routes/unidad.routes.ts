@@ -3,18 +3,18 @@
 // ============================================
 import { Router } from 'express';
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Unidad } from '../entities/Unidad';
 import { UnidadController } from '../controllers/unidad.controller';
-import { auth, requirePermiso } from '../middlewares/auth';
+import { auth, requirePermiso } from '../../../middlewares/auth';
 import {
   AddParticionDto,
   CreateUnidadDto,
   UnidadIdParamDto,
   UpdateUnidadDto,
 } from '../dtos/unidad.dto';
-import { validateDto } from '../middlewares/validation.middleware';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { validateDto } from '../../../middlewares/validation.middleware';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

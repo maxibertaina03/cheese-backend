@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { AppDataSource } from '../config/database';
 import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
-import { Unidad } from '../entities/Unidad';
+import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
 
 interface Alerta {
   tipo: 'stock_bajo' | 'inactividad';

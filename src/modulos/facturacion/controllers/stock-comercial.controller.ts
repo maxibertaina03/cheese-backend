@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AppDataSource } from '../../../config/database';
-import { Producto } from '../../../entities/Producto';
+import { Producto } from '../../inventario-quesos/entities/Producto';
 import { AuthRequest } from '../../../middlewares/auth';
 import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { StockComercial } from '../entities/StockComercial';

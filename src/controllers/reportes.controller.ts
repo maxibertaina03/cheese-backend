@@ -10,10 +10,10 @@ import { NotaPedido } from '../modulos/facturacion/entities/NotaPedido';
 import { NotaCredito } from '../modulos/facturacion/entities/NotaCredito';
 import { Recibo } from '../modulos/facturacion/entities/Recibo';
 import { computeReporte } from '../modulos/facturacion/services/reporte-facturacion.service';
-import { Particion } from '../entities/Particion';
-import { Unidad } from '../entities/Unidad';
+import { Particion } from '../modulos/inventario-quesos/entities/Particion';
+import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
 import { AuthRequest } from '../middlewares/auth';
-import { computeStockAlCorte, getUltimoLunes } from '../services/stockAlCorte.service';
+import { computeStockAlCorte, getUltimoLunes } from '../modulos/inventario-quesos/services/stockAlCorte.service';
 import { formatDateLabel } from '../compartido/utils/fechas';
 import {
   PdfColumn,

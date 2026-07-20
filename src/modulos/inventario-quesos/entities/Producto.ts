@@ -13,7 +13,7 @@ import {
 } from 'typeorm';
 import { TipoQueso } from './TipoQueso';
 import { Unidad } from './Unidad';
-import { Usuario } from './Usuario';
+import { Usuario } from '../../../entities/Usuario';
 
 @Entity('productos')
 export class Producto {

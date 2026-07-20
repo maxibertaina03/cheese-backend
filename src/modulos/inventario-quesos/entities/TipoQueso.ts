@@ -12,7 +12,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { Producto } from './Producto';
-import { Usuario } from './Usuario';
+import { Usuario } from '../../../entities/Usuario';
 
 @Entity('tipos_queso')
 export class TipoQueso {

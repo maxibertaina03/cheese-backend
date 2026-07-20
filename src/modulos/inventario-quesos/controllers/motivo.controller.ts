@@ -4,9 +4,9 @@
 // Los errores inesperados se derivan al errorHandler global vía asyncHandler
 // (ver rutas); acá solo se responden los errores de negocio (400/404/409).
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Motivo } from '../entities/Motivo';
-import { AuthRequest } from '../middlewares/auth';
+import { AuthRequest } from '../../../middlewares/auth';
 
 export class MotivoController {
   // GET /api/motivos - Listar todos los motivos activos

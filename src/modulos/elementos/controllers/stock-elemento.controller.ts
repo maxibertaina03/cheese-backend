@@ -3,7 +3,7 @@
 import { Response } from 'express';
 import { Between } from 'typeorm';
 import { AppDataSource } from '../../../config/database';
-import { Motivo } from '../../../entities/Motivo';
+import { Motivo } from '../../inventario-quesos/entities/Motivo';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { StockElemento } from '../entities/StockElemento';
 import { TipoElemento } from '../entities/TipoElemento';

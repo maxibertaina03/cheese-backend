@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { Elemento } from '../modulos/elementos/entities/Elemento';
 import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
-import { Motivo } from '../entities/Motivo';
+import { Motivo } from '../modulos/inventario-quesos/entities/Motivo';
 import { MovimientoElemento } from '../modulos/elementos/entities/MovimientoElemento';
 import { MovimientoIndumentaria } from '../modulos/indumentaria/entities/MovimientoIndumentaria';
 // Módulo Facturación (bounded context)
@@ -20,13 +20,13 @@ import { ReciboPago } from '../modulos/facturacion/entities/ReciboPago';
 import { NotaCredito } from '../modulos/facturacion/entities/NotaCredito';
 import { NotaCreditoItem } from '../modulos/facturacion/entities/NotaCreditoItem';
 import { MovimientoStock } from '../modulos/elementos/entities/MovimientoStock';
-import { Particion } from '../entities/Particion';
-import { Producto } from '../entities/Producto';
+import { Particion } from '../modulos/inventario-quesos/entities/Particion';
+import { Producto } from '../modulos/inventario-quesos/entities/Producto';
 import { Proveedor } from '../modulos/indumentaria/entities/Proveedor';
 import { StockElemento } from '../modulos/elementos/entities/StockElemento';
 import { TipoElemento } from '../modulos/elementos/entities/TipoElemento';
-import { TipoQueso } from '../entities/TipoQueso';
-import { Unidad } from '../entities/Unidad';
+import { TipoQueso } from '../modulos/inventario-quesos/entities/TipoQueso';
+import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
 import { Usuario } from '../entities/Usuario';
 
 dotenv.config();

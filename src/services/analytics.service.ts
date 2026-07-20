@@ -1,8 +1,8 @@
 // src/services/analytics.service.ts
 import { AppDataSource } from '../config/database';
-import { Unidad } from '../entities/Unidad';
-import { Particion } from '../entities/Particion';
-import { Producto } from '../entities/Producto';
+import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
+import { Particion } from '../modulos/inventario-quesos/entities/Particion';
+import { Producto } from '../modulos/inventario-quesos/entities/Producto';
 import { Between } from 'typeorm';
 
 export class AnalyticsService {

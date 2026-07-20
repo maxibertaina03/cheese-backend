@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, UpdateDateColumn } from 'typeorm';
-import { Producto } from '../../../entities/Producto';
+import { Producto } from '../../inventario-quesos/entities/Producto';
 
 // Stock de venta (facturación) por producto, en CANTIDAD. Es independiente del
 // inventario físico (unidades cargadas con pistola). Una fila por producto.

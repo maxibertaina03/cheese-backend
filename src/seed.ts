@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { AppDataSource } from './config/database';
-import { TipoQueso } from './entities/TipoQueso';
-import { Producto } from './entities/Producto';
+import { TipoQueso } from './modulos/inventario-quesos/entities/TipoQueso';
+import { Producto } from './modulos/inventario-quesos/entities/Producto';
 
 const SPECIAL_PRODUCTS = new Set(['azul', 'camembert', 'brie', 'feta de cabra']);
 

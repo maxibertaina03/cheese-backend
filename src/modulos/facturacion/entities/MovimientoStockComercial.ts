@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
-import { Producto } from '../../../entities/Producto';
+import { Producto } from '../../inventario-quesos/entities/Producto';
 import { Proveedor } from '../../indumentaria/entities/Proveedor';
 import { Usuario } from '../../../entities/Usuario';
 

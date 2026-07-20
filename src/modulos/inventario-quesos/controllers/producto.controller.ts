@@ -4,11 +4,11 @@
 // Los errores inesperados se derivan al errorHandler global vía asyncHandler
 // (ver rutas); acá solo se responden los errores de negocio (400/404).
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Producto } from '../entities/Producto';
 import { TipoQueso } from '../entities/TipoQueso';
-import { AuthRequest } from '../middlewares/auth';
-import { getUsuarioActual } from '../compartido/utils/usuarioActual';
+import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 
 export class ProductoController {
   // POST /api/productos - Crear producto
