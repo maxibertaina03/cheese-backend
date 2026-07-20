@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { ReportesController } from '../controllers/reportes.controller';
+import { QuesosDashboardController } from '../controllers/quesos-dashboard.controller';
+import { InventarioPdfController } from '../controllers/inventario-pdf.controller';
+import { ComprobantesPdfController } from '../controllers/comprobantes-pdf.controller';
+import { IndumentariaReportesController } from '../controllers/indumentaria-reportes.controller';
 import {
   DashboardQueryDto,
   ExportHistorialPdfQueryDto,
@@ -13,72 +16,53 @@ import { validateDto } from '../../../middlewares/validation.middleware';
 
 const router = Router();
 
-router.get('/dashboard', auth, validateDto(DashboardQueryDto, 'query'), ReportesController.getDashboard.bind(ReportesController));
-router.get('/ventas', auth, validateDto(VentasQueryDto, 'query'), ReportesController.getVentas.bind(ReportesController));
-router.get('/top-productos', auth, validateDto(TopProductosQueryDto, 'query'), ReportesController.getTopProductos.bind(ReportesController));
-router.get('/inventario-valorizado', auth, ReportesController.getInventarioValorizado.bind(ReportesController));
-router.get('/export/excel', auth, validateDto(ExportReportQueryDto, 'query'), ReportesController.exportExcel.bind(ReportesController));
-router.get('/export/pdf', auth, validateDto(ExportReportQueryDto, 'query'), ReportesController.exportPdf.bind(ReportesController));
+// Dashboard de quesos / ventas
+router.get('/dashboard', auth, validateDto(DashboardQueryDto, 'query'), QuesosDashboardController.getDashboard);
+router.get('/ventas', auth, validateDto(VentasQueryDto, 'query'), QuesosDashboardController.getVentas);
+router.get('/top-productos', auth, validateDto(TopProductosQueryDto, 'query'), QuesosDashboardController.getTopProductos);
+router.get('/inventario-valorizado', auth, QuesosDashboardController.getInventarioValorizado);
+router.get('/export/excel', auth, validateDto(ExportReportQueryDto, 'query'), QuesosDashboardController.exportExcel);
+router.get('/export/pdf', auth, validateDto(ExportReportQueryDto, 'query'), QuesosDashboardController.exportPdf);
+
+// PDFs de inventario / historial / stock al corte
 router.get(
   '/export/inventario/pdf',
   auth,
   validateDto(ExportInventarioPdfQueryDto, 'query'),
-  ReportesController.exportInventarioPdf.bind(ReportesController)
+  InventarioPdfController.exportInventarioPdf
 );
 router.get(
   '/export/historial/pdf',
   auth,
   validateDto(ExportHistorialPdfQueryDto, 'query'),
-  ReportesController.exportHistorialPdf.bind(ReportesController)
+  InventarioPdfController.exportHistorialPdf
 );
-router.get(
-  '/export/stock-lunes/pdf',
-  auth,
-  ReportesController.exportStockAlCortePdf.bind(ReportesController)
-);
-router.get(
-  '/export/nota-pedido/:id/pdf',
-  auth,
-  requirePermiso('facturacion'),
-  ReportesController.exportNotaPedidoPdf.bind(ReportesController)
-);
-router.get(
-  '/export/recibo/:id/pdf',
-  auth,
-  requirePermiso('facturacion'),
-  ReportesController.exportReciboPdf.bind(ReportesController)
-);
-router.get(
-  '/export/nota-credito/:id/pdf',
-  auth,
-  requirePermiso('facturacion'),
-  ReportesController.exportNotaCreditoPdf.bind(ReportesController)
-);
-router.get(
-  '/export/facturacion/pdf',
-  auth,
-  requirePermiso('facturacion'),
-  ReportesController.exportReporteFacturacionPdf.bind(ReportesController)
-);
+router.get('/export/stock-lunes/pdf', auth, InventarioPdfController.exportStockAlCortePdf);
+
+// PDFs de comprobantes de facturación
+router.get('/export/nota-pedido/:id/pdf', auth, requirePermiso('facturacion'), ComprobantesPdfController.exportNotaPedidoPdf);
+router.get('/export/recibo/:id/pdf', auth, requirePermiso('facturacion'), ComprobantesPdfController.exportReciboPdf);
+router.get('/export/nota-credito/:id/pdf', auth, requirePermiso('facturacion'), ComprobantesPdfController.exportNotaCreditoPdf);
+router.get('/export/facturacion/pdf', auth, requirePermiso('facturacion'), ComprobantesPdfController.exportReporteFacturacionPdf);
 
 // Indumentaria (prendas)
 router.get(
   '/indumentaria/dashboard',
   auth,
   validateDto(DashboardQueryDto, 'query'),
-  ReportesController.getIndumentariaDashboard.bind(ReportesController)
+  IndumentariaReportesController.getIndumentariaDashboard
 );
 router.get(
   '/indumentaria/export/excel',
   auth,
   validateDto(ExportReportQueryDto, 'query'),
-  ReportesController.exportIndumentariaExcel.bind(ReportesController)
+  IndumentariaReportesController.exportIndumentariaExcel
 );
 router.get(
   '/indumentaria/export/pdf',
   auth,
   validateDto(ExportReportQueryDto, 'query'),
-  ReportesController.exportIndumentariaPdf.bind(ReportesController)
+  IndumentariaReportesController.exportIndumentariaPdf
 );
 
 export default router;
