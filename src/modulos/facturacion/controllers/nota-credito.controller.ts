@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { In } from 'typeorm';
 import { AppDataSource } from '../../../config/database';
-import { Elemento } from '../../../entities/Elemento';
-import { MovimientoElemento } from '../../../entities/MovimientoElemento';
+import { Elemento } from '../../elementos/entities/Elemento';
+import { MovimientoElemento } from '../../elementos/entities/MovimientoElemento';
 import { AuthRequest } from '../../../middlewares/auth';
 import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 import { NotaCredito } from '../entities/NotaCredito';

@@ -9,8 +9,8 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { StockElemento } from './StockElemento';
-import { Motivo } from './Motivo';
-import { Usuario } from './Usuario';
+import { Motivo } from '../../../entities/Motivo';
+import { Usuario } from '../../../entities/Usuario';
 
 @Entity('movimientos_stock')
 export class MovimientoStock {

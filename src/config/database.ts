@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { Elemento } from '../entities/Elemento';
+import { Elemento } from '../modulos/elementos/entities/Elemento';
 import { Indumentaria } from '../entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
-import { MovimientoElemento } from '../entities/MovimientoElemento';
+import { MovimientoElemento } from '../modulos/elementos/entities/MovimientoElemento';
 import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
 // Módulo Facturación (bounded context)
 import { Cliente } from '../modulos/facturacion/entities/Cliente';
@@ -19,12 +19,12 @@ import { ReciboAplicacion } from '../modulos/facturacion/entities/ReciboAplicaci
 import { ReciboPago } from '../modulos/facturacion/entities/ReciboPago';
 import { NotaCredito } from '../modulos/facturacion/entities/NotaCredito';
 import { NotaCreditoItem } from '../modulos/facturacion/entities/NotaCreditoItem';
-import { MovimientoStock } from '../entities/MovimientoStock';
+import { MovimientoStock } from '../modulos/elementos/entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
 import { Proveedor } from '../entities/Proveedor';
-import { StockElemento } from '../entities/StockElemento';
-import { TipoElemento } from '../entities/TipoElemento';
+import { StockElemento } from '../modulos/elementos/entities/StockElemento';
+import { TipoElemento } from '../modulos/elementos/entities/TipoElemento';
 import { TipoQueso } from '../entities/TipoQueso';
 import { Unidad } from '../entities/Unidad';
 import { Usuario } from '../entities/Usuario';

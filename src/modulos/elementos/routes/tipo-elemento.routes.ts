@@ -2,11 +2,11 @@
 // ARCHIVO: src/routes/tipo-elemento.routes.ts
 // ============================================
 import { Request, Response, Router } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { TipoElemento } from '../entities/TipoElemento';
 import { TipoElementoController } from '../controllers/tipo-elemento.controller';
-import { auth } from '../middlewares/auth';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { auth } from '../../../middlewares/auth';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

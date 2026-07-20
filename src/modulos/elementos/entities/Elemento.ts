@@ -8,8 +8,8 @@ import {
   DeleteDateColumn,
   OneToMany,
 } from 'typeorm';
-import { Motivo } from './Motivo';
-import { Usuario } from './Usuario';
+import { Motivo } from '../../../entities/Motivo';
+import { Usuario } from '../../../entities/Usuario';
 import { MovimientoElemento } from './MovimientoElemento'; // Nueva entidad
 
 @Entity('elementos')

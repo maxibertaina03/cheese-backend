@@ -2,13 +2,13 @@
 // (ver rutas); acá solo se responden los errores de negocio (400/404).
 import { Response } from 'express';
 import { Between } from 'typeorm';
-import { AppDataSource } from '../config/database';
-import { Motivo } from '../entities/Motivo';
+import { AppDataSource } from '../../../config/database';
+import { Motivo } from '../../../entities/Motivo';
 import { MovimientoStock } from '../entities/MovimientoStock';
 import { StockElemento } from '../entities/StockElemento';
 import { TipoElemento } from '../entities/TipoElemento';
-import { AuthRequest } from '../middlewares/auth';
-import { getUsuarioActual } from '../compartido/utils/usuarioActual';
+import { AuthRequest } from '../../../middlewares/auth';
+import { getUsuarioActual } from '../../../compartido/utils/usuarioActual';
 
 type ControllerErrorResult = {
   error: {

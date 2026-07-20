@@ -14,9 +14,9 @@ import authRoutes from './routes/auth.routes';
 import usuarioRoutes from './routes/usuario.routes';
 import reportesRoutes from './routes/reportes.routes';
 import alertasRoutes from './routes/alertas.routes';
-import elementoRoutes from './routes/elemento.routes'; // 🆕
-import stockElementoRoutes from './routes/stock-elemento.routes'; // 🆕
-import tipoElementoRoutes from './routes/tipo-elemento.routes'; // 🆕
+import elementoRoutes from './modulos/elementos/routes/elemento.routes'; // 🆕
+import stockElementoRoutes from './modulos/elementos/routes/stock-elemento.routes'; // 🆕
+import tipoElementoRoutes from './modulos/elementos/routes/tipo-elemento.routes'; // 🆕
 import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
 import proveedorRoutes from './routes/proveedor.routes'; // 🆕
 // Módulo Facturación (bounded context)
