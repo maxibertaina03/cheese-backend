@@ -2,19 +2,19 @@ import { Response } from 'express';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
-import { AppDataSource } from '../config/database';
-import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
-import { MovimientoIndumentaria } from '../modulos/indumentaria/entities/MovimientoIndumentaria';
-import { Empresa } from '../modulos/facturacion/entities/Empresa';
-import { NotaPedido } from '../modulos/facturacion/entities/NotaPedido';
-import { NotaCredito } from '../modulos/facturacion/entities/NotaCredito';
-import { Recibo } from '../modulos/facturacion/entities/Recibo';
-import { computeReporte } from '../modulos/facturacion/services/reporte-facturacion.service';
-import { Particion } from '../modulos/inventario-quesos/entities/Particion';
-import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
-import { AuthRequest } from '../middlewares/auth';
-import { computeStockAlCorte, getUltimoLunes } from '../modulos/inventario-quesos/services/stockAlCorte.service';
-import { formatDateLabel } from '../compartido/utils/fechas';
+import { AppDataSource } from '../../../config/database';
+import { Indumentaria } from '../../indumentaria/entities/Indumentaria';
+import { MovimientoIndumentaria } from '../../indumentaria/entities/MovimientoIndumentaria';
+import { Empresa } from '../../facturacion/entities/Empresa';
+import { NotaPedido } from '../../facturacion/entities/NotaPedido';
+import { NotaCredito } from '../../facturacion/entities/NotaCredito';
+import { Recibo } from '../../facturacion/entities/Recibo';
+import { computeReporte } from '../../facturacion/services/reporte-facturacion.service';
+import { Particion } from '../../inventario-quesos/entities/Particion';
+import { Unidad } from '../../inventario-quesos/entities/Unidad';
+import { AuthRequest } from '../../../middlewares/auth';
+import { computeStockAlCorte, getUltimoLunes } from '../../inventario-quesos/services/stockAlCorte.service';
+import { formatDateLabel } from '../../../compartido/utils/fechas';
 import {
   PdfColumn,
   buildPdfBuffer,
@@ -27,7 +27,7 @@ import {
   ensurePdfSpace,
   textOrDash,
   truncateText,
-} from '../compartido/utils/pdf';
+} from '../../../compartido/utils/pdf';
 
 type RawVenta = {
   fecha: string;

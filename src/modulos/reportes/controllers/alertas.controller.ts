@@ -1,9 +1,9 @@
 // src/controllers/alertas.controller.ts
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import { AppDataSource } from '../config/database';
-import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
-import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
+import { AuthRequest } from '../../../middlewares/auth';
+import { AppDataSource } from '../../../config/database';
+import { Indumentaria } from '../../indumentaria/entities/Indumentaria';
+import { Unidad } from '../../inventario-quesos/entities/Unidad';
 
 interface Alerta {
   tipo: 'stock_bajo' | 'inactividad';

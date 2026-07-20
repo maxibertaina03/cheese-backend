@@ -8,8 +8,8 @@ import {
   TopProductosQueryDto,
   VentasQueryDto,
 } from '../dtos/reportes.dto';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { validateDto } from '../middlewares/validation.middleware';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { validateDto } from '../../../middlewares/validation.middleware';
 
 const router = Router();
 

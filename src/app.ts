@@ -12,8 +12,8 @@ import particionRoutes from './modulos/inventario-quesos/routes/particion.routes
 import motivoRoutes from './modulos/inventario-quesos/routes/motivo.routes';
 import authRoutes from './modulos/identidad/routes/auth.routes';
 import usuarioRoutes from './modulos/identidad/routes/usuario.routes';
-import reportesRoutes from './routes/reportes.routes';
-import alertasRoutes from './routes/alertas.routes';
+import reportesRoutes from './modulos/reportes/routes/reportes.routes';
+import alertasRoutes from './modulos/reportes/routes/alertas.routes';
 import elementoRoutes from './modulos/elementos/routes/elemento.routes'; // 🆕
 import stockElementoRoutes from './modulos/elementos/routes/stock-elemento.routes'; // 🆕
 import tipoElementoRoutes from './modulos/elementos/routes/tipo-elemento.routes'; // 🆕
