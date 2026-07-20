@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { Indumentaria } from './Indumentaria';
 
 @Entity('proveedores')

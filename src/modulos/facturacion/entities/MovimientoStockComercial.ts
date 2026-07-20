@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Producto } from '../../inventario-quesos/entities/Producto';
 import { Proveedor } from '../../indumentaria/entities/Proveedor';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 // Historial de movimientos del stock comercial (carga, venta, ajuste).
 @Entity('movimientos_stock_comercial')

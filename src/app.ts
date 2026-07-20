@@ -10,8 +10,8 @@ import unidadRoutes from './modulos/inventario-quesos/routes/unidad.routes';
 import tipoQuesoRoutes from './modulos/inventario-quesos/routes/tipoQueso.routes';
 import particionRoutes from './modulos/inventario-quesos/routes/particion.routes';
 import motivoRoutes from './modulos/inventario-quesos/routes/motivo.routes';
-import authRoutes from './routes/auth.routes';
-import usuarioRoutes from './routes/usuario.routes';
+import authRoutes from './modulos/identidad/routes/auth.routes';
+import usuarioRoutes from './modulos/identidad/routes/usuario.routes';
 import reportesRoutes from './routes/reportes.routes';
 import alertasRoutes from './routes/alertas.routes';
 import elementoRoutes from './modulos/elementos/routes/elemento.routes'; // 🆕

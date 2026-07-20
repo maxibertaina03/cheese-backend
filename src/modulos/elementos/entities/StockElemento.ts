@@ -13,7 +13,7 @@ import {
 } from 'typeorm';
 import { TipoElemento } from './TipoElemento'; // Nueva entidad
 import { MovimientoStock } from './MovimientoStock'; // Nueva entidad
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 @Entity('stock_elementos')
 export class StockElemento {

@@ -13,7 +13,7 @@ import {
 } from 'typeorm';
 import { Producto } from './Producto';
 import { Particion } from './Particion';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { Motivo } from './Motivo'
 
 @Entity('unidades')

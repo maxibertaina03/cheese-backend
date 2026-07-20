@@ -1,9 +1,9 @@
 // src/routes/usuario.routes.ts (corregido)
 import { Router } from 'express';
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../../../config/database';
 import { Usuario } from '../entities/Usuario';
-import { auth, requireRole } from '../middlewares/auth';
+import { auth, requireRole } from '../../../middlewares/auth';
 
 // Extender la interfaz Request para incluir user con tipos correctos
 declare global {

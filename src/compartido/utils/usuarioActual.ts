@@ -8,7 +8,7 @@
 //   if (req.user?.id) usuario = await usuarioRepo.findOneBy({ id: req.user.id });
 import { EntityManager } from 'typeorm';
 import { AppDataSource } from '../../config/database';
-import { Usuario } from '../../entities/Usuario';
+import { Usuario } from '../../modulos/identidad/entities/Usuario';
 import { AuthRequest } from '../../middlewares/auth';
 
 // Pasar el `manager` cuando se esté dentro de una transacción, para que la

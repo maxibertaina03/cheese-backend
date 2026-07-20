@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Indumentaria } from './Indumentaria';
 import { Proveedor } from './Proveedor';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 @Entity('movimientos_indumentaria')
 export class MovimientoIndumentaria {

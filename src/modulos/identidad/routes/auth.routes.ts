@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { AppDataSource } from '../config/database';
-import { getOptionalAuthUser, signAuthToken, verifyAuthToken } from '../config/auth';
+import { AppDataSource } from '../../../config/database';
+import { getOptionalAuthUser, signAuthToken, verifyAuthToken } from '../../../config/auth';
 import { LoginDto, RegisterDto } from '../dtos/auth.dto';
 import { Usuario } from '../entities/Usuario';
-import { validateDto } from '../middlewares/validation.middleware';
+import { validateDto } from '../../../middlewares/validation.middleware';
 
 const router = Router();
 

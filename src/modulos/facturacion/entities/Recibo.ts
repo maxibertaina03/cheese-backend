@@ -9,7 +9,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Cliente } from './Cliente';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { ReciboAplicacion } from './ReciboAplicacion';
 import { ReciboPago } from './ReciboPago';
 

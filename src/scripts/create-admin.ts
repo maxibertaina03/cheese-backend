@@ -6,7 +6,7 @@
 import 'reflect-metadata';
 import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../config/database';
-import { Usuario } from '../entities/Usuario';
+import { Usuario } from '../modulos/identidad/entities/Usuario';
 
 const username = process.argv[2];
 const password = process.argv[3];

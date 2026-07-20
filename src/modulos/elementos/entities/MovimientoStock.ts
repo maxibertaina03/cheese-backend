@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { StockElemento } from './StockElemento';
 import { Motivo } from '../../inventario-quesos/entities/Motivo';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 @Entity('movimientos_stock')
 export class MovimientoStock {

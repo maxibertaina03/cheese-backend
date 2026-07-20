@@ -8,7 +8,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Cliente } from './Cliente';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { NotaPedidoItem } from './NotaPedidoItem';
 
 export type EstadoNotaPedido = 'confirmada' | 'pagada_parcial' | 'pagada_total' | 'anulada';

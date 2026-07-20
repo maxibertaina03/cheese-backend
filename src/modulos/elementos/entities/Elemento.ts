@@ -9,7 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Motivo } from '../../inventario-quesos/entities/Motivo';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { MovimientoElemento } from './MovimientoElemento'; // Nueva entidad
 
 @Entity('elementos')

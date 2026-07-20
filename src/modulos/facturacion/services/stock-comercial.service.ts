@@ -1,7 +1,7 @@
 import { EntityManager } from 'typeorm';
 import { StockComercial } from '../entities/StockComercial';
 import { MovimientoStockComercial } from '../entities/MovimientoStockComercial';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 type Tipo = 'ingreso' | 'egreso' | 'ajuste';
 

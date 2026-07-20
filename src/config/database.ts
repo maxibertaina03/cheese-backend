@@ -27,7 +27,7 @@ import { StockElemento } from '../modulos/elementos/entities/StockElemento';
 import { TipoElemento } from '../modulos/elementos/entities/TipoElemento';
 import { TipoQueso } from '../modulos/inventario-quesos/entities/TipoQueso';
 import { Unidad } from '../modulos/inventario-quesos/entities/Unidad';
-import { Usuario } from '../entities/Usuario';
+import { Usuario } from '../modulos/identidad/entities/Usuario';
 
 dotenv.config();
 

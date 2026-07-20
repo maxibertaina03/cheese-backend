@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { Cliente } from './Cliente';
 import { NotaPedido } from './NotaPedido';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { NotaCreditoItem } from './NotaCreditoItem';
 
 // Nota de crédito (serie 3): devolución sobre una nota de pedido. Reingresa stock

@@ -11,7 +11,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Unidad } from './Unidad';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 import { Motivo } from './Motivo';
 
 @Entity('particiones')

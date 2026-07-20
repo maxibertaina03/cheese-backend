@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { Elemento } from './Elemento';
 import { Motivo } from '../../inventario-quesos/entities/Motivo';
-import { Usuario } from '../../../entities/Usuario';
+import { Usuario } from '../../identidad/entities/Usuario';
 
 @Entity('movimientos_elemento')
 export class MovimientoElemento {
