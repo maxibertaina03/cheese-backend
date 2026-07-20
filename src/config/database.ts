@@ -2,10 +2,10 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { Elemento } from '../modulos/elementos/entities/Elemento';
-import { Indumentaria } from '../entities/Indumentaria';
+import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
 import { Motivo } from '../entities/Motivo';
 import { MovimientoElemento } from '../modulos/elementos/entities/MovimientoElemento';
-import { MovimientoIndumentaria } from '../entities/MovimientoIndumentaria';
+import { MovimientoIndumentaria } from '../modulos/indumentaria/entities/MovimientoIndumentaria';
 // Módulo Facturación (bounded context)
 import { Cliente } from '../modulos/facturacion/entities/Cliente';
 import { Empresa } from '../modulos/facturacion/entities/Empresa';
@@ -22,7 +22,7 @@ import { NotaCreditoItem } from '../modulos/facturacion/entities/NotaCreditoItem
 import { MovimientoStock } from '../modulos/elementos/entities/MovimientoStock';
 import { Particion } from '../entities/Particion';
 import { Producto } from '../entities/Producto';
-import { Proveedor } from '../entities/Proveedor';
+import { Proveedor } from '../modulos/indumentaria/entities/Proveedor';
 import { StockElemento } from '../modulos/elementos/entities/StockElemento';
 import { TipoElemento } from '../modulos/elementos/entities/TipoElemento';
 import { TipoQueso } from '../entities/TipoQueso';

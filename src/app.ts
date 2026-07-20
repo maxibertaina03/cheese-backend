@@ -17,8 +17,8 @@ import alertasRoutes from './routes/alertas.routes';
 import elementoRoutes from './modulos/elementos/routes/elemento.routes'; // 🆕
 import stockElementoRoutes from './modulos/elementos/routes/stock-elemento.routes'; // 🆕
 import tipoElementoRoutes from './modulos/elementos/routes/tipo-elemento.routes'; // 🆕
-import indumentariaRoutes from './routes/indumentaria.routes'; // 🆕
-import proveedorRoutes from './routes/proveedor.routes'; // 🆕
+import indumentariaRoutes from './modulos/indumentaria/routes/indumentaria.routes'; // 🆕
+import proveedorRoutes from './modulos/indumentaria/routes/proveedor.routes'; // 🆕
 // Módulo Facturación (bounded context)
 import clienteRoutes from './modulos/facturacion/routes/cliente.routes';
 import empresaRoutes from './modulos/facturacion/routes/empresa.routes';

@@ -8,9 +8,9 @@ import {
   IngresoIndumentariaDto,
   UpdateIndumentariaDto,
 } from '../dtos/indumentaria.dto';
-import { auth, requirePermiso } from '../middlewares/auth';
-import { validateDto } from '../middlewares/validation.middleware';
-import { asyncHandler } from '../compartido/middlewares/asyncHandler';
+import { auth, requirePermiso } from '../../../middlewares/auth';
+import { validateDto } from '../../../middlewares/validation.middleware';
+import { asyncHandler } from '../../../compartido/middlewares/asyncHandler';
 
 const router = Router();
 

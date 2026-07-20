@@ -2,7 +2,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { AppDataSource } from '../config/database';
-import { Indumentaria } from '../entities/Indumentaria';
+import { Indumentaria } from '../modulos/indumentaria/entities/Indumentaria';
 import { Unidad } from '../entities/Unidad';
 
 interface Alerta {
